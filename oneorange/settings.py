@@ -27,13 +27,13 @@ def generate_secret_key(filename):
     f.close()
 
 try:
-    from secret_key import *
+    from .secret_key import *
 except ImportError:
     SETTINGS_DIR = os.path.abspath(os.path.dirname(__file__))
     SECRET_FILE = os.path.join(SETTINGS_DIR, 'secret_key.py')
     generate_secret_key(SECRET_FILE)
     print('Generate %s...' % SECRET_FILE)
-    from secret_key import *
+    from .secret_key import *
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

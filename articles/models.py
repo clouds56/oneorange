@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import datetime
 
 # Create your models here.
 class Author(models.Model):
@@ -9,8 +10,8 @@ class Author(models.Model):
 
 class Article(models.Model):
   title = models.CharField(max_length=200)
-  content = models.CharField(max_length=20000)
-  pub_date = models.DateTimeField('date published')
   author = models.ForeignKey(Author)
+  content = models.TextField()
+  pub_date = models.DateTimeField('date published', default = datetime.now)
   def __str__(self):
     return self.title+"\n\n"+self.content
