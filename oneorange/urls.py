@@ -5,7 +5,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'oneorange.views.home', name='home'),
+    url(r'^$', 'oneorange.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
 
     url(r'^articles/', include('articles.urls')),
