@@ -1,5 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
 {% for article in articles %}
 <h2>{{ article.title }}</h2>
-<p>{{ article.author }} {{ article.pub_date }}</p>
+<p>{{ article.author }} {{ article.pub_date|date:"Y-m-d" }}</p>
 <p>{{ article.content }}</p>
 {% endfor %}
+{% endblock %}
