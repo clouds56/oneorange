@@ -10,3 +10,9 @@ def index(request):
     template = loader.get_template("archive.html")
     context = RequestContext(request, {'articles': articles})
     return HttpResponse(template.render(context))
+
+def detail(request, id):
+    article = Article.objects.get(id=id)
+    template = loader.get_template("detail.html")
+    context = RequestContext(request, {'article': article})
+    return HttpResponse(template.render(context))
