@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% load comments %}
 {% block content %}
-<h2>{{ article.title }}</h2>
-<p>{{ article.author }} {{ article.pub_date|date:"Y-m-d" }}</p>
-<p>{{ article.content }}</p>
-{% render_comment_list for article %}
-{% render_comment_form for article %}
+<article>
+  <aside>
+  	<div>{{ article.title }}<div>
+  </aside>
+  <header>
+  	<h1>{{ article.title }}</h1>
+  	<p>{{ article.author }} {{ article.pub_date|date:"Y-m-d" }}</p>
+  </header>
+  <main>{{ article.content|linebreaks }}</main>
+</article>
 {% endblock %}
