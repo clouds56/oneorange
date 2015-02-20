@@ -4,3 +4,4 @@ secret_key.py
 oneorange*.service
 *.swp
 *.pyc
+libraries/
