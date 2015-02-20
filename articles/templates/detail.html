@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<article>
-  <aside>
-  	<div>{{ article.title }}<div>
+<div class="row">
+  <aside class="col-md-2">
+    <div>{{ article.title }}<div>
   </aside>
-  <header>
-  	<h1>{{ article.title }}</h1>
-  	<p>{{ article.author }} {{ article.pub_date|date:"Y-m-d" }}</p>
-  </header>
-  <main>{{ article.content|linebreaks }}</main>
-</article>
+  <article class="col-md-6">
+    <header class=>
+      <h1>{{ article.title }}</h1>
+      <p>{{ article.author }} {{ article.pub_date|date:"Y-m-d" }}</p>
+    </header>
+    <main>{{ article.content|linebreaks }}</main>
+  </article>
+</div>
 {% endblock %}
