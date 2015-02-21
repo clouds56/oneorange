@@ -7,6 +7,12 @@ from articles.models import Article
 
 def index(request):
     articles = Article.objects.all()
+    template = loader.get_template("base.html")
+    context = RequestContext(request, {'articles': articles})
+    return HttpResponse(template.render(context))
+
+def archive(request, author):
+    articles = Article.objects.filter(author=author);
     template = loader.get_template("archive.html")
     context = RequestContext(request, {'articles': articles})
     return HttpResponse(template.render(context))

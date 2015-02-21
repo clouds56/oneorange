@@ -3,16 +3,22 @@
 {% block body_class %}{{ block.super }} home{% endblock %}
 
 {% block content %}
-<div class="row main wrapper clearfix">
+
+<div class="row">
   <aside class="col-md-2">
     <div>{{ article.title }}</div>
   </aside>
-  <article class="col-md-6">
-    <header class=>
-      <h1>{{ article.title }}</h1>
-      <p>{{ article.author }} {{ article.pub_date|date:"Y-m-d" }}</p>
+  <article class="col-md-7">
+    <header class="blog-header">
+      <h1 class="blog-title">{{ article.title }}</h1>
+      <p class="lead blog-description">
+        <a href="/articles/{{ article.author }}">{{ article.author }}</a>
+        {{ article.pub_date|date:"Y-m-d" }}
+      </p>
     </header>
     <main>{{ article.content|linebreaks }}</main>
   </article>
+  <aside class="col-md-3">
+  </aside>
 </div>
 {% endblock %}

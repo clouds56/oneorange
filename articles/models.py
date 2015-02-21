@@ -3,8 +3,15 @@ from datetime import datetime
 
 # Create your models here.
 class Author(models.Model):
-  name = models.CharField(max_length=100)
+  name = models.CharField(primary_key=True, max_length=100)
   reg_date = models.DateTimeField('date registered')
+  def __str__(self):
+    return self.name
+
+class Anthology(models.Model):
+  name = models.CharField(max_length=200)
+  create_date = models.DateTimeField('date created')
+  author = models.ForeignKey(Author)
   def __str__(self):
     return self.name
 

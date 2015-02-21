@@ -17,11 +17,12 @@
     <meta name="description" content="{% block meta_description %}{% endblock %}" />
     <meta name="author" content="{% block meta_author %}{% endblock %}" />
     <meta name="viewport" content="width=device-width" />
-    <link rel="stylesheet" href="{{ STATIC_URL }}css/normalize.css" />
-    <link rel="stylesheet" href="{{ STATIC_URL }}css/main.css" />
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/base.css" />
+    <!-- <link rel="stylesheet" href="{{ STATIC_URL }}css/normalize.css" /> -->
+    <!-- <link rel="stylesheet" href="{{ STATIC_URL }}css/main.css" /> -->
     {% block css %}{% endblock %}
     
-    <script src="{{ STATIC_URL }}js/vendor/modernizr-2.6.2.min.js"></script>
+    <!-- <script src="{{ STATIC_URL }}js/vendor/modernizr-2.6.2.min.js"></script> -->
   </head>
 
   <body class="{% block body_class %}{% endblock %}">
@@ -30,11 +31,15 @@
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
     <![endif]-->
 
-    <header class="wrapper clearfix">
-      <h1><a href="/" title="oneorange.com">Home</a></h1>
-    </header>
-    {% block content %}
-    {% endblock content %}
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <a class="navbar-brand" href="/articles" title="oneorange.com">Home</a>
+      </div>
+    </nav>
+    <div class="container">
+      {% block content %}
+      {% endblock content %}
+    </div>
 
     {% block javascript_library %}
     <!-- <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script> -->

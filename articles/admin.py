@@ -1,5 +1,5 @@
 from django.contrib import admin
-from articles.models import Author, Article
+from articles.models import Author, Article, Anthology
 # Register your models here.
 
 class ArticleAdmin(admin.ModelAdmin):
@@ -11,4 +11,5 @@ class ArticleAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'pub_date')
 
 admin.site.register(Author)
+admin.site.register(Anthology)
 admin.site.register(Article, ArticleAdmin)
