@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% for article in articles %}
+<section>
+  <p><a href="/articles/{{ article.author }}/{{ anthology_name }}/{{ article.id }}">{{ article.title }}</a></p>
+  <p>
+    <a href="/articles/{{ article.author }}">{{ article.author }}</a>
+    {{ article.pub_date|date:"Y-m-d" }}
+  </p>
+  <p>{% for anthology in article.anthologies.all %}
+  	<a href="/articles/{{ anthology.author }}/{{ anthology.name }}">{{ anthology.name }}</a>,
+  {% endfor %}</p>
+</section>
+{% endfor %}
+{% endblock %}

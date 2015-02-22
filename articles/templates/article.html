@@ -13,6 +13,9 @@
       <h1 class="blog-title">{{ article.title }}</h1>
       <p class="lead blog-description">
         <a href="/articles/{{ article.author }}">{{ article.author }}</a>
+        {% for anthology in article.anthologies.all %}
+          <a href="/articles/{{ anthology.author }}/{{ anthology.name }}">{{ anthology.name }}</a>,
+        {% endfor %}
         {{ article.pub_date|date:"Y-m-d" }}
       </p>
     </header>
