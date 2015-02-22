@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.template import RequestContext, loader
 
 from articles.models import Article
+from articles.forms import ArticleForm
 # Create your views here.
 
 def index(request):
