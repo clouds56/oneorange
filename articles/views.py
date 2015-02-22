@@ -6,9 +6,9 @@ from articles.models import Author, Article, Anthology
 # Create your views here.
 
 def index(request):
-    articles = Article.objects.all()
+    authors = Author.objects.all()
     template = loader.get_template("base.html")
-    context = RequestContext(request, {'articles': articles})
+    context = RequestContext(request, {'authors': authors})
     return HttpResponse(template.render(context))
 
 def author(request, author):

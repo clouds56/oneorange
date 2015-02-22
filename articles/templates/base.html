@@ -38,6 +38,15 @@
     </nav>
     <div class="container">
       {% block content %}
+      {% for author in authors %}
+      <section class="blog-post">
+        <h3 class="blog-post-title"><a href="/articles/{{ author.name }}">{{ author.name }}</a></h3>
+        <p class="blog-post-meta">{{ author.reg_date|date:"r" }}</p>
+        <p>{% for article in author.articles.all %}
+          <a href="/articles/{{ author.name }}/{{ 'main' }}/{{ article.id }}">{{ article.title }}</a>,
+        {% endfor %}</p>
+      </section>
+      {% endfor %}
       {% endblock content %}
     </div>
 

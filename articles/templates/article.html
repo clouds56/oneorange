@@ -16,7 +16,7 @@
         {% for anthology in article.anthologies.all %}
           <a href="/articles/{{ anthology.author }}/{{ anthology.name }}">{{ anthology.name }}</a>,
         {% endfor %}
-        {{ article.pub_date|date:"Y-m-d" }}
+        {{ article.pub_date|date:"r" }}
       </p>
     </header>
     <main>{{ article.content|linebreaks }}</main>
