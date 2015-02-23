@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 # Create your models here.
 class Author(models.Model):
   name = models.CharField(max_length=100)
-  user = models.ForeignKey(User, unique=True)
+  user = models.OneToOneField(User, related_name='author', unique=True)
   date_create = models.DateTimeField('date registered', default = timezone.now)
   def __str__(self):
     return self.name

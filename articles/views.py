@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.template import RequestContext, loader
 from django.contrib import auth
+from django.contrib.auth.decorators import login_required
 
 from articles.models import Author, Article, Anthology
 # Create your views here.
@@ -18,9 +19,12 @@ def login(request):
     user = auth.authenticate(username=username, password=password)
     if user is not None:
         auth.login(request, user)
-        return HttpResponse('/accounts/loggedin')
-    else:
-        return HttpResponse('/accounts/invalid')
+    return redirect(request.META.get('HTTP_REFERER'))
+
+@login_required
+def logout(request):
+    auth.logout(request)
+    return redirect(request.META.get('HTTP_REFERER'))
 
 def author(request, author):
     anthologies = Anthology.objects.filter(author__name=author);
