@@ -10,6 +10,7 @@ urlpatterns = patterns('',
     url(r'^$', 'oneorange.views.home', name='home'),
 
     url(r'^articles/', include('articles.urls')),
+    url(r'^accounts/', include('articles.urls')),
     #url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
 )
