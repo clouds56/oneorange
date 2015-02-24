@@ -13,19 +13,6 @@ def index(request):
     context = RequestContext(request, {'authors': authors})
     return HttpResponse(template.render(context))
 
-def login(request):
-    username = request.POST['username']
-    password = request.POST['password']
-    user = auth.authenticate(username=username, password=password)
-    if user is not None:
-        auth.login(request, user)
-    return redirect(request.META.get('HTTP_REFERER'))
-
-@login_required
-def logout(request):
-    auth.logout(request)
-    return redirect(request.META.get('HTTP_REFERER'))
-
 def author(request, author):
     anthologies = Anthology.objects.filter(author__name=author);
     template = loader.get_template("author.html")

@@ -127,6 +127,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     #'django.contrib.comments',
     'bootstrap3',
+    'accounts',
     'articles',
 )
 
