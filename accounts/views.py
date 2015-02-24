@@ -25,3 +25,6 @@ def login(request):
 def logout(request):
     auth.logout(request)
     return redirect(request.META.get('HTTP_REFERER'))
+
+def signup(request):
+    return render(request, "signup.html")
