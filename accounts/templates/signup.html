@@ -10,6 +10,7 @@
     <form class="form-signup" method="POST">
       {% csrf_token %}
       <h2 class="form-signup-heading">Please sign up</h2>
+      <p>{{ error_msg }}</p>
       <label for="inputUsername" class="sr-only">Username</label>
       <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" required autofocus>
       <label for="inputEmail" class="sr-only">Email address</label>
