@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/signup.css" />
+{% endblock %}
+
+{% block content %}
+<main>
+  <div class="container">
+    <form class="form-signup" method="POST">
+      {% csrf_token %}
+      <h2 class="form-signup-heading">Step2</h2>
+      <p>{{ error_msg }}</p>
+      <label for="inputUsername" class="sr-only">Username</label>
+      <input type="text" id="inputAuthor" name="author" class="form-control" placeholder="Author Name" {% if author %}value="{{ author }}"{% endif %} required autofocus>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" value="agreement-me">Create Author
+        </label>
+      </div>
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+    </form>
+  </div>
+</main>
+{% endblock %}
