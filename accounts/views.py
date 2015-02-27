@@ -15,11 +15,23 @@ def index(request):
     return HttpResponse(template.render(context))
 
 def login(request):
+    referer = "/articles"
+    if request.META.get('HTTP_REFERER'):
+        referer = request.META.get('HTTP_REFERER')
+    if not 'csrfmiddlewaretoken' in request.POST:
+        return render(request, "login.html")
+    if request.user.is_authenticated():
+        return redirect(request.META.get('HTTP_REFERER'))
+    if not 'username' in request.POST:
+        return render(request, "login.html", {'error_msg': "No username"})
+    if not 'password' in request.POST:
+        return render(request, "login.html", {'error_msg': "No password"})
     username = request.POST['username']
     password = request.POST['password']
     user = auth.authenticate(username=username, password=password)
-    if user is not None:
-        auth.login(request, user)
+    if not user:
+        return render(request, "login.html", {'error_msg': "User not exist"})
+    auth.login(request, user)
     return redirect(request.META.get('HTTP_REFERER'))
 
 @login_required
@@ -48,10 +60,11 @@ def signup(request):
     return redirect("/accounts/step2/"+username)
 
 def step2(request, author):
+    if not request.user.is_authenticated():
+        return redirect("/accounts/login")
     if not 'csrfmiddlewaretoken' in request.POST:
         return render(request, "step2.html", {'author': author})
-    if request.user.is_authenticated():
-        username = request.user.username
+    username = request.user.username
     if not request.POST['author']:
         return render(request, "step.html", {'error_msg': "No author name", 'author': author})
     author = request.POST['author']
