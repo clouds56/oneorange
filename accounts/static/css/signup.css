@@ -38,7 +38,7 @@
   border-radius: 0;
 }
 
-.form-signup input[id="inputConfirmPassword"] {
+.form-signup input[id="inputConfirmPassword"], input[id="inputAuthor"] {
   margin-bottom: 10px;
   border-top-left-radius: 0;
   border-top-right-radius: 0;

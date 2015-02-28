@@ -12,6 +12,8 @@
       <h2 class="form-signup-heading">Step2</h2>
       <p>{{ error_msg }}</p>
       <label for="inputUsername" class="sr-only">Username</label>
+      <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" {% if username %}value="{{ username }}"{% endif %} required disabled>
+      <label for="inputUsername" class="sr-only">Username</label>
       <input type="text" id="inputAuthor" name="author" class="form-control" placeholder="Author Name" {% if author %}value="{{ author }}"{% endif %} required autofocus>
       <div class="checkbox">
         <label>

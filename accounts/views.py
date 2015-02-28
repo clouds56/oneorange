@@ -49,6 +49,8 @@ def login(request):
     user = auth.authenticate(username=username, password=password)
     if not user:
         return render(request, "login.html", {'error_msg': "Wrong username or password", 'next': next})
+    elif not user.is_active:
+        return render(request, "login.html", {'error_msg': "User is deleted", 'next': next})
     auth.login(request, user)
     return redirect(next)
 
@@ -78,19 +80,22 @@ def signup(request):
         return render(request, "signup.html", {'error_msg': "Email exists", 'last': {'username': username, 'email':email}})
     user = User.objects.create_user(username, email, password)
     user.save()
+    user = auth.authenticate(username=username, password=password)
+    auth.login(request, user)
     return redirect("/accounts/step2/"+username)
 
+@login_required
 def step2(request, author):
-    if not request.user.is_authenticated():
-        return redirect("/accounts/login")
-    if not 'csrfmiddlewaretoken' in request.POST:
-        return render(request, "step2.html", {'author': author})
     username = request.user.username
+    if request.method == 'GET':
+        return render(request, "step2.html", {'username': username, 'author': author})
     if not request.POST['author']:
-        return render(request, "step.html", {'error_msg': "No author name", 'author': author})
+        return render(request, "step2.html", {'error_msg': "No author name", 'username': username, 'author': author})
     author = request.POST['author']
+    if Author.objects.filter(user__username=username).exists():
+        return render(request, "step2.html", {'error_msg': "Author already created", 'username': username, 'author': author})
     if Author.objects.filter(name=author).exists():
-        return render(request, "step.html", {'error_msg': "Author name exists", 'author': author})
+        return render(request, "step2.html", {'error_msg': "Author name exists", 'username': username, 'author': author})
     anauthor = Author.objects.create(name=author, user=request.user)
     anauthor.save()
     return redirect("/accounts/success")
