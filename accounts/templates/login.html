@@ -15,6 +15,7 @@
       <input type="text" id="inputUsername" name="username" class="form-control" placeholder="Username" {% if last.username %}value="{{ last.username }}"{% endif %} required autofocus>
       <label for="inputPassword" class="sr-only">Password</label>
       <input type="password" id="inputConfirmPassword" name="password" class="form-control" placeholder="Password" required>
+      <input type="hidden" name="next" value="{{ next }}">
       <div class="checkbox">
         <label>
           <input type="checkbox" value="agreement-me">Remember me
