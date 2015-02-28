@@ -99,3 +99,11 @@ def step2(request, author):
     anauthor = Author.objects.create(name=author, user=request.user)
     anauthor.save()
     return redirect("/accounts/success")
+
+@login_required
+def success(request):
+    username = request.user.username
+    if not Author.objects.filter(user__username=username).exists():
+        return redirect("/accounts/step2")
+    author = Author.objects.get(user__username=username)
+    return render(request, "success.html", {'username': username, 'author': author.name})

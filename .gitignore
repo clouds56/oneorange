@@ -1,0 +1,9 @@
+!.gitignore
+*~
+.*.swp
+.*.swo
+__pycache__
+secret_key.py
+migrations
+db.sqlite3
+
