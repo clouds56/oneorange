@@ -25,9 +25,12 @@ def get_relative_url(url, server=None, default=None):
         return default
 
     # remove the protocol and split the url at the slashes
+    if not re.match(url, 'https?:\/\/'):
+        return url
+
     urltree = re.sub('^https?:\/\/', '', url).split('/')
     if server and urltree[0] != server:
-        return default
+        return url
 
     # add the slash at the relative path's view and finished
     url = u'/' + u'/'.join(urltree[1:])

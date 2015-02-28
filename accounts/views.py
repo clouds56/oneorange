@@ -23,9 +23,11 @@ def login(request):
     if request.method == 'GET':
         if not 'next' in request.GET or not request.GET['next']:
             return redirect("/accounts/login?next="+referer)
-        return render(request, "login.html", {'next': request.GET['next']})
+        next = get_relative_url(request.GET['next'], request.META.get('SERVER_NAME'), referer)
+        if next.find("/accounts/login") == 0:
+            next = referer
+        return render(request, "login.html", {'next': next})
 
-    next = ""
     if 'next' in request.POST and request.POST['next']:
         next = get_relative_url(request.POST['next'], request.META.get('SERVER_NAME'), referer)
     elif 'next' in request.GET and request.GET['next']:
@@ -33,7 +35,7 @@ def login(request):
     else:
         next = referer
     if next.find("/accounts/login") == 0:
-        next = referer;llllkkk
+        next = referer
     if request.user.is_authenticated():
         return redirect(next)
     if not 'username' in request.POST:
@@ -41,12 +43,12 @@ def login(request):
     if not 'password' in request.POST:
         return render(request, "login.html", {'error_msg': "No password", 'next': next})
     username = request.POST['username']
-    if User.objects.filter(username=username).exists():
-        return render(request, "login.html", {'error_msg': "User not exist", 'next': next})
+    if not User.objects.filter(username=username).exists():
+        return render(request, "login.html", {'error_msg': "User not exists", 'next': next})
     password = request.POST['password']
     user = auth.authenticate(username=username, password=password)
     if not user:
-        return render(request, "login.html", {'error_msg': "User or password wrong", 'next': next})
+        return render(request, "login.html", {'error_msg': "Wrong username or password", 'next': next})
     auth.login(request, user)
     return redirect(next)
 
