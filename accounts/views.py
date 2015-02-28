@@ -55,7 +55,10 @@ def login(request):
 @login_required
 def logout(request):
     auth.logout(request)
-    return redirect(request.META.get('HTTP_REFERER'))
+    referer = get_referer_view(request, "/articles")
+    if referer.find("/accounts/logout") == 0:
+        referer = "/articles"
+    return redirect(referer)
 
 def signup(request):
     if not 'csrfmiddlewaretoken' in request.POST:

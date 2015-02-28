@@ -36,3 +36,12 @@ class AccountsTest(TestCase):
 
         response = client.post('/accounts/login?', {'username': 'zz', 'password': '123', 'next': '/accounts/signup'})
         self.assertRedirects(response, '/accounts/signup', status_code=302)
+
+    def test_logout(self):
+        client = Client()
+        response = client.get('/accounts/logout')
+        self.assertRedirects(response, '/accounts/login/?next=/accounts/logout', status_code=302)
+
+        response = client.post('/accounts/login?', {'username': 'zz', 'password': '123', 'next': '/accounts/login/?next=/accounts/logout'})
+        response = client.get('/accounts/logout', follow=True)
+        self.assertTrue('articles' in str(response.redirect_chain))
