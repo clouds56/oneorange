@@ -1,0 +1,76 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "user_permissions": [],
+    "first_name": "",
+    "username": "clouds",
+    "is_active": true,
+    "groups": [],
+    "password": "pbkdf2_sha256$15000$4P4hcZItkC4E$eAjV8rTElGk7iWZn19I67hM0LbFeX4eWIOJoK0+qaQg=",
+    "is_staff": true,
+    "last_name": "",
+    "email": "",
+    "is_superuser": true,
+    "last_login": "2015-03-30T13:01:03.615Z",
+    "date_joined": "2015-03-30T13:00:39.483Z"
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "user_permissions": [],
+    "first_name": "",
+    "username": "liuyong",
+    "is_active": true,
+    "groups": [],
+    "password": "pbkdf2_sha256$15000$1QkLiwBA3o6F$iJ2nIE2Y9EoVVwR+CwgG4tXiIQ9B1EJniksGr/Z6KUA=",
+    "is_staff": false,
+    "last_name": "",
+    "email": "liuyong@example.com",
+    "is_superuser": false,
+    "last_login": "2015-03-30T19:40:44.735Z",
+    "date_joined": "2015-03-30T19:38:55.441Z"
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 3,
+  "fields": {
+    "user_permissions": [],
+    "first_name": "",
+    "username": "laozi",
+    "is_active": true,
+    "groups": [],
+    "password": "pbkdf2_sha256$15000$yybGcXMLPZqu$s3mHdbZdBT9hidIEhN8d2xzvmsA5HbdUDYYbrQvGsak=",
+    "is_staff": false,
+    "last_name": "",
+    "email": "laozi@example.com",
+    "is_superuser": false,
+    "last_login": "2015-03-30T19:41:34.728Z",
+    "date_joined": "2015-03-30T19:41:34.328Z"
+  }
+},
+{
+  "model": "articles.author",
+  "pk": 1,
+  "fields": {
+    "user": 2,
+    "name": "\u67f3\u6c38",
+    "updated": "2015-03-30T19:41:02.852Z",
+    "created": "2015-03-30T19:41:02.663Z"
+  }
+},
+{
+  "model": "articles.author",
+  "pk": 2,
+  "fields": {
+    "user": 3,
+    "name": "\u8001\u5b50",
+    "updated": "2015-03-30T19:41:40.301Z",
+    "created": "2015-03-30T19:41:40.127Z"
+  }
+}
+]
