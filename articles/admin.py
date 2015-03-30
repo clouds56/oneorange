@@ -5,10 +5,10 @@ from articles.models import Author, Article, Anthology
 class ArticleAdmin(admin.ModelAdmin):
     fieldsets = [
         (None, {'fields': ['title']}),
-        ('Info', {'fields': ['author', 'date_create'], 'classes': ['collapse']}),
+        ('Info', {'fields': ['author', 'created', 'updated'], 'classes': ['collapse']}),
         (None, {'fields': ['content']}),
     ]
-    list_display = ('title', 'author', 'date_create')
+    list_display = ('title', 'author', 'created', 'updated')
 
 admin.site.register(Author)
 admin.site.register(Anthology)
