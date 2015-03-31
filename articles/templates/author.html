@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% for anthology in author.anthologies.all %}
+{% for anthology in author_anthologies %}
 <section class="blog-post">
   <h1 class="blog-post-title"><a href="/articles/{{ author.name }}/{{ anthology.name }}">{{ anthology.name }}</a></h1>
   <p class="blog-post-meta">
@@ -13,4 +13,11 @@
   {% endfor %}</p>
 </section>
 {% endfor %}
+{% if user.author == author %}
+<section class="blog-post">
+  <form class="blog-post-title" action="/articles/{{ author.name }}/new">
+    <input class="btn btn-primary" type="submit" value="New Anthology">
+  </form>
+</section>
+{% endif %}
 {% endblock %}

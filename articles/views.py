@@ -13,7 +13,8 @@ def index(request):
 
 def author(request, author):
     author = get_object_or_404(Author, name=author)
-    return render(request, "author.html", {'author': author})
+    author_anthologies = author.anthologies.all()
+    return render(request, "author.html", {'author': author, 'author_anthologies': author_anthologies})
 
 def anthology(request, author, anthology):
     anthology = get_object_or_404(Anthology, author__name=author, name=anthology)
