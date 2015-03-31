@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-{% for article in articles %}
+{% for article in anthology.articles.all %}
 <section class="blog-post">
-  <h1 class="blog-post-title"><a href="/articles/{{ article.author }}/{{ anthology_name }}/{{ article.id }}">{{ article.title }}</a></h1>
+  <h1 class="blog-post-title"><a href="/articles/{{ article.author.name }}/{{ anthology.name }}/{{ article.id }}">{{ article.title }}</a></h1>
   <p class="blog-post-meta">
-    <a href="/articles/{{ article.author }}">{{ article.author }}</a>
+    <a href="/articles/{{ article.author.name }}">{{ article.author.name }}</a>
     {{ article.pub_date|date:"r" }}
   </p>
-  <p>{% for anthology in article.anthologies.all %}
-  	<a href="/articles/{{ anthology.author }}/{{ anthology.name }}">{{ anthology.name }}</a>,
+  <p>{% for art_anthology in article.anthologies.all %}
+    <a href="/articles/{{ art_anthology.author.name }}/{{ art_anthology.name }}">{{ art_anthology.name }}</a>,
   {% endfor %}</p>
 </section>
 {% endfor %}

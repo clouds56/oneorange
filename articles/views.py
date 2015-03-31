@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.template import RequestContext, loader
 from django.contrib import auth
@@ -9,24 +9,16 @@ from articles.models import Author, Article, Anthology
 
 def index(request):
     authors = Author.objects.all()
-    template = loader.get_template("base.html")
-    context = RequestContext(request, {'authors': authors})
-    return HttpResponse(template.render(context))
+    return render(request, "base.html", {'authors': authors})
 
 def author(request, author):
-    anthologies = Anthology.objects.filter(author__name=author);
-    template = loader.get_template("author.html")
-    context = RequestContext(request, {'anthologies': anthologies})
-    return HttpResponse(template.render(context))
+    author = get_object_or_404(Author, name=author)
+    return render(request, "author.html", {'author': author})
 
 def anthology(request, author, anthology):
-    articles = Article.objects.filter(anthologies__name=anthology);
-    template = loader.get_template("anthology.html")
-    context = RequestContext(request, {'articles': articles, 'anthology_name': anthology})
-    return HttpResponse(template.render(context))
+    anthology = get_object_or_404(Anthology, author__name=author, name=anthology)
+    return render(request, "anthology.html", {'anthology': anthology})
 
 def article(request, author, anthology, article):
-    article = Article.objects.get(id=article)
-    template = loader.get_template("article.html")
-    context = RequestContext(request, {'article': article})
-    return HttpResponse(template.render(context))
+    article = get_object_or_404(Article, id=article)
+    return render(request, "article.html", {'article': article})
