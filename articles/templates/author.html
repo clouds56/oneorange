@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<p>{{ msg }}</p>
 {% for anthology in author_anthologies %}
 <section class="blog-post">
   <h1 class="blog-post-title"><a href="/articles/{{ author.name }}/{{ anthology.name }}">{{ anthology.name }}</a></h1>
