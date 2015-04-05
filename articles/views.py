@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.template import RequestContext, loader
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
+from django.views.generic import TemplateView
 
 from articles.models import Author, Article, Anthology
 # Create your views here.
@@ -11,29 +12,32 @@ def index(request):
     authors = Author.objects.all()
     return render(request, "base.html", {'authors': authors})
 
-def author(request, author_name):
-    args = {}
-    args['author'] = get_object_or_404(Author, name=author_name)
-    if request.method == "GET":
-        args['author_anthologies'] = args['author'].anthologies.all()
-        return render(request, "author.html", args)
-    elif request.method == "POST":
+class AuthorView(TemplateView):
+    template_name = "author.html"
+
+    def get(self, request, author_name):
+        context = {}
+        context['author'] = get_object_or_404(Author, name=author_name)
+        context['author_anthologies'] = context['author'].anthologies.all()
+        return self.render_to_response(context)
+
+    def post(self, request, author_name):
+        context = {}
+        context['author'] = get_object_or_404(Author, name=author_name)
         anthology_name = ""
         created = None
-        if "name" in request.POST:
-            anthology_name = request.POST["name"]
+        if "anthology_name" in request.POST:
+            anthology_name = request.POST["anthology_name"]
         if anthology_name:
-            anthology, created = Anthology.objects.get_or_create(name=anthology_name, author=args['author'])
+            anthology, created = Anthology.objects.get_or_create(name=anthology_name, author=context['author'])
+            if created:
+                context['msg'] = anthology_name + " created"
+            else:
+                context['msg'] = anthology_name + " already exist"
         else:
-            args['author_anthologies'] = args['author'].anthologies.all()
-            args['msg'] = "error name"
-            render(request, "author.html", args)
-        if created:
-            args['msg'] = anthology_name + " created"
-        else:
-            args['msg'] = anthology_name + " already exist"
-        args['author_anthologies'] = args['author'].anthologies.all()
-        return render(request, "author.html", args)
+            context['msg'] = "error name"
+        context['author_anthologies'] = context['author'].anthologies.all()
+        return self.render_to_response(context)
 
 def anthology(request, author_name, anthology_name):
     anthology = get_object_or_404(Anthology, author__name=author_name, name=anthology_name)
