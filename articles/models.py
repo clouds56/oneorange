@@ -26,6 +26,6 @@ class Anthology(models.Model):
   created = models.DateTimeField('date created', default = timezone.now)
   updated = fields.AutoDateTimeField('date updated', default = timezone.now)
   author = models.ForeignKey(Author, related_name='anthologies')
-  articles = models.ManyToManyField(Article, related_name='anthologies', blank=True, null=True)
+  articles = models.ManyToManyField(Article, related_name='anthologies', blank=True)
   def __str__(self):
     return self.name
