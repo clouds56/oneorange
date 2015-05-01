@@ -39,9 +39,14 @@ class AuthorView(TemplateView):
         context['author_anthologies'] = context['author'].anthologies.all()
         return self.render_to_response(context)
 
-def anthology(request, author_name, anthology_name):
-    anthology = get_object_or_404(Anthology, author__name=author_name, name=anthology_name)
-    return render(request, "anthology.html", {'anthology': anthology})
+class AnthologyView(TemplateView):
+    template_name = "anthology.html"
+
+    def get(self, request, author_name, anthology_name):
+        context = {}
+        context['author'] = get_object_or_404(Author, name=author_name)
+        context['anthology'] = get_object_or_404(Anthology, author__name=author_name, name=anthology_name)
+        return self.render_to_response(context)
 
 def article(request, author_name, anthology_name, article_id):
     article = get_object_or_404(Article, id=article_id)

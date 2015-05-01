@@ -3,9 +3,9 @@
 {% block content %}
 {% for article in anthology.articles.all %}
 <section class="blog-post">
-  <h1 class="blog-post-title"><a href="/articles/{{ article.author.name }}/{{ anthology.name }}/{{ article.id }}">{{ article.title }}</a></h1>
+  <h1 class="blog-post-title"><a href="/articles/{{ author.name }}/{{ anthology.name }}/{{ article.id }}">{{ article.title }}</a></h1>
   <p class="blog-post-meta">
-    <a href="/articles/{{ article.author.name }}">{{ article.author.name }}</a>
+    <a href="/articles/{{ author.name }}">{{ author.name }}</a>
     {{ article.pub_date|date:"r" }}
   </p>
   <p>{% for art_anthology in article.anthologies.all %}
@@ -13,9 +13,9 @@
   {% endfor %}</p>
 </section>
 {% endfor %}
-{% if user.author == anthology.author %}
+{% if user.author == author %}
 <section class="blog-post">
-  <a class="btn btn-primary" href="/articles/{{ anthology.author.name }}/{{ anthology.name }}/new">New Article<a>
+  <a class="btn btn-primary" href="/articles/{{ author.name }}/{{ anthology.name }}/new">New Article<a>
 </section>
 {% endif %}
 {% endblock %}
