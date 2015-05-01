@@ -13,4 +13,9 @@
   {% endfor %}</p>
 </section>
 {% endfor %}
+{% if user.author == anthology.author %}
+<section class="blog-post">
+  <a class="btn btn-primary" href="/articles/{{ anthology.author.name }}/{{ anthology.name }}/new">New Article<a>
+</section>
+{% endif %}
 {% endblock %}

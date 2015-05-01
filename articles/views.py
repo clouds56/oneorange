@@ -46,3 +46,7 @@ def anthology(request, author_name, anthology_name):
 def article(request, author_name, anthology_name, article_id):
     article = get_object_or_404(Article, id=article_id)
     return render(request, "article.html", {'article': article})
+
+def newarticle(request, author_name, anthology_name):
+    anthology = get_object_or_404(Anthology, author__name=author_name, name=anthology_name)
+    return render(request, "post.html", {'anthology': anthology})
