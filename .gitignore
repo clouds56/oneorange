@@ -6,4 +6,5 @@ __pycache__
 secret_key.py
 migrations
 db.sqlite3
-
+libraries
+components

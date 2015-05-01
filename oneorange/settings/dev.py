@@ -41,11 +41,9 @@ STATIC_URL = '/static/'
 # In production, this should be handled separately by your webserver or CDN.
 ROOT_URLCONF = 'oneorange.urls.dev'
 
-BOOTSTRAP3 = {
-    'include_jquery': False,
-    'jquery_url': '/static/js/vendor/jquery-2.1.3.js',
-    'base_url': '/static/',
-    'css_url': '/static/css/bootstrap.css',
-    'theme_url': '/static/css/bootstrap-theme.css',
-    'javascript_url': '/static/js/vendor/bootstrap-3.3.2.js',
-}
+BOWER_INSTALLED_APPS = (
+    'jquery',
+    'underscore',
+    'create',
+    'bootstrap',
+)

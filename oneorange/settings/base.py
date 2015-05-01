@@ -61,6 +61,8 @@ USE_L10N = True
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
 
+BOWER_COMPONENTS_ROOT = os.path.join(PROJECT_ROOT, 'components')
+
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media')
@@ -85,6 +87,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    'djangobower.finders.BowerFinder',
 )
 
 # List of callables that know how to import templates from various sources.
@@ -137,7 +140,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     #'django.contrib.comments',
-    'bootstrap3',
+    'djangobower',
     'accounts',
     'articles',
 )
