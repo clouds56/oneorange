@@ -44,6 +44,6 @@ ROOT_URLCONF = 'oneorange.urls.dev'
 BOWER_INSTALLED_APPS = (
     'jquery',
     'underscore',
-    'create',
+    'hallo',
     'bootstrap',
 )

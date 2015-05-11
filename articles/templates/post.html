@@ -1,5 +1,48 @@
 {% extends "base.html" %}
 
+{% load static %}
+{% block javascript_library %}
+<script src="{% static 'jquery/dist/jquery.js' %}"></script>
+<script src="{% static 'jquery-ui/ui/jquery-ui.js' %}"></script>
+<script src="{% static 'underscore/underscore.js' %}"></script>
+<script src="{% static 'rangy-official/rangy-core.js' %}"></script>
+<script src="{% static 'hallo/dist/hallo.js' %}"></script>
+<script src="{% static 'bootstrap/dist/js/bootstrap.js' %}"></script>
+{% endblock javascript_library %}
+{% block javascript %}
+<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/post.js' %}"></script>
+{% endblock javascript %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/base.css' %}" />
+<link rel="stylesheet" href="{% static 'css/post.css' %}" />
+<link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap.css' %}" />
+<link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap-theme.css' %}" />
+<link rel="stylesheet" href="{% static 'jquery-ui/themes/base/jquery-ui.css' %}" />
+<link rel="stylesheet" href="{% static 'font-awesome/css/font-awesome.css' %}" />
+{% endblock %}
+
 {% block content %}
-Post
+<div class="row">
+  <aside class="col-md-2">
+    LASIDE
+  </aside>
+  <article class="col-md-7 post-article">
+    <header class="blog-header">
+      <h1 class="blog-title editable" contentEditable="true">Untitled</h1>
+      <p class="lead blog-description" property="dcterms:author">
+        <a href="/articles/{{ author.name }}">{{ author.name }}</a>
+        <a href="/articles/{{ author.name }}/{{ anthology.name }}">{{ anthology.name }}</a>
+        {{ article.pub_date|date:"r" }}
+      </p>
+    </header>
+    <main class="blog-main editable" contentEditable="true">Content goes here</main>
+    <div>
+      <a class="btn btn-primary" href="/articles/{{ author.name }}/{{ anthology.name }}/new">Post</a>
+    </div>
+    <textarea id="mdsource"></textarea>
+  </article>
+  <aside class="col-md-3">
+  </aside>
+</div>
 {% endblock %}
