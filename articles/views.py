@@ -22,6 +22,7 @@ class AuthorView(TemplateView):
         return self.render_to_response(context)
 
     def post(self, request, author_name):
+        """New Anthology"""
         context = {}
         context['author'] = get_object_or_404(Author, name=author_name)
         anthology_name = ""
@@ -46,6 +47,28 @@ class AnthologyView(TemplateView):
         context = {}
         context['author'] = get_object_or_404(Author, name=author_name)
         context['anthology'] = get_object_or_404(Anthology, author__name=author_name, name=anthology_name)
+        return self.render_to_response(context)
+
+    def post(self, request, author_name, anthology_name):
+        """New Article"""
+        context = {}
+        context['author'] = get_object_or_404(Author, name=author_name) #TODO: no 404
+        context['anthology'] = get_object_or_404(Anthology, author__name=author_name, name=anthology_name)
+        article_title = ""
+        article_content = ""
+        if "article_title" in request.POST:
+            article_title = request.POST["article_title"]
+        if "article_content" in request.POST:
+            article_content = request.POST["article_content"]
+        if article_title and article_title!="" and article_content and article_content!="":
+            article, created = Article.objects.get_or_create(title=article_title, author=context['author'], defaults={'content': article_content})
+            if created:
+                context['msg'] = article_title + " created"
+                article.anthologies.add(context['anthology'])
+            else:
+                context['msg'] = article_title + " already exist"
+        else:
+            context['msg'] = "wrong input"
         return self.render_to_response(context)
 
 def article(request, author_name, anthology_name, article_id):

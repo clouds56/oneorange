@@ -27,7 +27,8 @@
   <aside class="col-md-2">
     LASIDE
   </aside>
-  <article class="col-md-7 post-article">
+  <form class="col-md-7 post-article" method="POST" action="/articles/{{ author.name }}/{{ anthology.name }}">
+    {% csrf_token %}
     <header class="blog-header">
       <h1 class="blog-title editable" contentEditable="true">Untitled</h1>
       <p class="lead blog-description" property="dcterms:author">
@@ -38,10 +39,11 @@
     </header>
     <main class="blog-main editable" contentEditable="true">Content goes here</main>
     <div>
-      <a class="btn btn-primary" href="/articles/{{ author.name }}/{{ anthology.name }}/new">Post</a>
+      <input type="submit" class="btn btn-primary" value="Post">
     </div>
-    <textarea id="mdsource"></textarea>
-  </article>
+    <input type="text" name="article_title" id="mdtitle" />
+    <textarea name="article_content" id="mdsource"></textarea>
+  </form>
   <aside class="col-md-3">
   </aside>
 </div>
