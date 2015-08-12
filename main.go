@@ -1,14 +1,19 @@
 package main
 
 import (
-	"fmt"
+	"html/template"
 	"net/http"
 	"log"
 	"github.com/gorilla/mux"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+	tmpl, err := template.ParseFiles("templates/author.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tmpl.Execute(w, map[string]string{"Author":r.URL.Path[1:]})
 }
 
 func initRouter() *mux.Router {
