@@ -26,11 +26,11 @@ func TestTest(t *testing.T) {
 }
 
 func TestAuthorGet(t *testing.T) {
-	resp, err := http.Get(url+"/clouds")
+	resp, err := http.Get(url+"/Articles/Clouds")
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	body, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	assert.NoError(t, err)
-	assert.Contains(t, string(body), "clouds")
+	assert.Contains(t, string(body), "Clouds")
 }

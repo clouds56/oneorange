@@ -13,12 +13,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	tmpl.Execute(w, map[string]string{"Author":r.URL.Path[1:]})
+	params := mux.Vars(r)
+	tmpl.Execute(w, params)
 }
 
 func initRouter() *mux.Router {
-	var router = mux.NewRouter()
-	router.HandleFunc("/{author}", handler)
+	router := mux.NewRouter()
+	sub := router.PathPrefix("/Articles").Subrouter()
+	sub.HandleFunc("/{Author}", handler)
 	return router
 }
 
