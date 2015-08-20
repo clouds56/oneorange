@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	do "gopkg.in/godo.v2"
 	"database/sql"
+	"fmt"
 	_ "github.com/lib/pq"
+	do "gopkg.in/godo.v2"
+	"os"
 )
 
 func exist(filename string) bool {
@@ -52,7 +52,7 @@ func tasks(p *do.Project) {
 		c.Run("createdb -p 9456 orangez")
 		db := connect()
 		defer db.Close()
-		_, err := db.Exec("CREATE TABLE authors ( id int primary key, name varchar(50) not null unique, desp varchar(200) );")
+		_, err := db.Exec("CREATE TABLE authors ( id int primary key, name varchar(50) not null unique, description varchar(200) );")
 		if err != nil {
 			panic(fmt.Sprintf("Create table failed : %v", err))
 		}
@@ -70,6 +70,14 @@ func tasks(p *do.Project) {
 
 	p.Task("db-restore", do.S{"db-start"}, func(c *do.Context) {
 		c.Run("psql --set ON_ERROR_STOP=on -p 9456 -d orangez -f tasks/dump.sql")
+	})
+
+	p.Task("run", do.S{"db-start"}, func(c *do.Context) {
+		c.Run("go run main.go")
+	})
+
+	p.Task("test", do.S{"db-start"}, func(c *do.Context) {
+		c.Run("go test")
 	})
 }
 

@@ -2,20 +2,21 @@ package main
 
 import (
 	"fmt"
-	"testing"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 var (
 	server *httptest.Server
-	url string
+	url    string
 )
 
 func init() {
-	server = httptest.NewServer(initRouter())
+	router, db = initRouter()
+	server = httptest.NewServer(router)
 	url = server.URL
 	fmt.Println(url)
 }
@@ -26,7 +27,7 @@ func TestTest(t *testing.T) {
 }
 
 func TestAuthorGet(t *testing.T) {
-	resp, err := http.Get(url+"/Articles/Clouds")
+	resp, err := http.Get(url + "/Articles/Clouds")
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	body, err := ioutil.ReadAll(resp.Body)

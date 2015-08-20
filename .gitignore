@@ -1,3 +1,4 @@
 data/
 tasks/godobin-*
 *.pem
+tasks/dump.sql
