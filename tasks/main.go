@@ -77,7 +77,7 @@ func tasks(p *do.Project) {
 	})
 
 	p.Task("test", do.S{"db-start"}, func(c *do.Context) {
-		c.Run("go test")
+		c.Run("go test -v")
 	})
 }
 

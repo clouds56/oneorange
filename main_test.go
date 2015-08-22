@@ -26,6 +26,16 @@ func TestTest(t *testing.T) {
 	assert.Contains(t, "a", "a")
 }
 
+func TestSignup(t *testing.T) {
+	resp, err := http.Get(url + "/Articles/Sign-Up")
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	assert.NoError(t, err)
+	assert.Contains(t, string(body), "submit")
+}
+
 func TestAuthorGet(t *testing.T) {
 	resp, err := http.Get(url + "/Articles/Clouds")
 	assert.NoError(t, err)
