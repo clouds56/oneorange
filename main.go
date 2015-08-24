@@ -16,15 +16,25 @@ var (
 )
 
 type Author struct {
-	Id          int
+	Id          string
 	Name        string
+	Password    string
 	Description string
+}
+
+func cryptoPassword(password string) string {
+	return "SALT" + password
 }
 
 func getAuthor(name string) (*Author, error) {
 	var author Author
 	err := db.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.Id, &author.Name, &author.Description)
 	return &author, err
+}
+
+func addAuthor(author *Author) error {
+	_, err := db.Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", author.Name, cryptoPassword(author.Password), author.Description)
+	return err
 }
 
 func authorHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +47,7 @@ func authorHandler(w http.ResponseWriter, r *http.Request) {
 	author, err := getAuthor(params["Author"])
 	if err != nil {
 		log.Println(err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		tmpl.Execute(w, map[string]interface{}{"Author": author})
 	}
@@ -53,7 +63,33 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func newuserHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "Redirect", http.StatusFound)
+	r.ParseForm()
+	var author Author
+	if len(r.Form["username"]) != 1 {
+		http.Error(w, "No username", http.StatusInternalServerError)
+		return
+	}
+	author.Name = r.Form["username"][0]
+	if len(r.Form["password"]) != 1 {
+		http.Error(w, "No password", http.StatusInternalServerError)
+		return
+	}
+	author.Password = r.Form["password"][0]
+	if len(r.Form["description"]) > 1 {
+		http.Error(w, "Multiple description", http.StatusInternalServerError)
+		return
+	}
+	if len(r.Form["description"]) == 0 {
+		author.Description = ""
+	} else {
+		author.Description = r.Form["description"][0]
+	}
+	err := addAuthor(&author)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "Success", http.StatusFound)
 }
 
 func initRouter() (*mux.Router, *sql.DB) {
