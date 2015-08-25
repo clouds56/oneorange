@@ -3,10 +3,11 @@ package main
 import (
 	"database/sql"
 	"github.com/gorilla/mux"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 )
 
@@ -46,7 +47,11 @@ func authorHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	author, err := getAuthor(params["Author"])
 	if err != nil {
-		log.Println(err)
+		if err.Error() == "sql: no rows in result set" {
+			http.NotFound(w, r)
+			return
+		}
+		log.Printf("%#v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		tmpl.Execute(w, map[string]interface{}{"Author": author})
@@ -59,6 +64,13 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 		log.Panic(err)
 	}
 	params := mux.Vars(r)
+	params["Username"] = r.FormValue("username")
+	switch r.FormValue("err") {
+	case "authors_name_key":
+		params["Error"] = "Duplicate username"
+	case "authors_name_character":
+		params["Error"] = "Invalid username"
+	}
 	tmpl.Execute(w, params)
 }
 
@@ -75,17 +87,27 @@ func newuserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	author.Password = r.Form["password"][0]
-	if len(r.Form["description"]) > 1 {
+	switch len(r.Form["description"]) {
+	case 0:
+		author.Description = ""
+	case 1:
+		author.Description = r.Form["description"][0]
+	default:
 		http.Error(w, "Multiple description", http.StatusInternalServerError)
 		return
 	}
-	if len(r.Form["description"]) == 0 {
-		author.Description = ""
-	} else {
-		author.Description = r.Form["description"][0]
-	}
 	err := addAuthor(&author)
 	if err != nil {
+		switch err := err.(type) {
+		case *pq.Error:
+			switch {
+			case err.Code == "23505" && err.Constraint == "authors_name_key", err.Code == "23514" && err.Constraint == "authors_name_character":
+				params := url.Values{"err": {err.Constraint}, "username": {author.Name}}.Encode()
+				http.Redirect(w, r, "/Articles/Sign-Up?"+params, http.StatusFound)
+				return
+			}
+		}
+		log.Printf("%#v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -93,6 +115,7 @@ func newuserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func initRouter() (*mux.Router, *sql.DB) {
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	db, err := sql.Open("postgres", "port=9456 dbname=orangez sslmode=disable")
 	if err != nil {
 		panic("Open postgres failed")

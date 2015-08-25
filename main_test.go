@@ -77,13 +77,17 @@ func (it *IT) Redirect(url string) *IT {
 	if it.failed {
 		return it
 	}
-	// if it.resp.StatusCode >= http.StatusMultipleChoices && it.resp.StatusCode <= http.StatusTemporaryRedirect {
-	// 	return it
-	// } else {
-	// 	assert.Fail(it.t, fmt.Sprintf("Expected StatusCode between %d and %d but get %d", http.StatusMultipleChoices, http.StatusTemporaryRedirect, it.resp.StatusCode))
-	// 	it.t.Fail()
-	// }
-	if assert.Equal(it.t, it.resp.Request.URL.Path, url) {
+	if assert.Equal(it.t, url, it.resp.Request.URL.Path) {
+		return it
+	}
+	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+}
+
+func (it *IT) HttpCode(code int) *IT {
+	if it.failed {
+		return it
+	}
+	if assert.Equal(it.t, code, it.resp.StatusCode) {
 		return it
 	}
 	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
@@ -187,20 +191,43 @@ func TestTest(t *testing.T) {
 	assert.True(t, true, "Canary test")
 	assert.Contains(t, "a", "a")
 	assert.NotNil(t, router)
+	if !D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty().PASS() {
+		D(t, "clear test1").Exec("DELETE FROM authors WHERE name=$1", "testNonExist")
+		D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
+	}
+	if !D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty().PASS() {
+		D(t, "clear author").Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", "testExist", cryptoPassword("123"), "lazy and nothing")
+		D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
+	}
 }
 
 func TestSignup(t *testing.T) {
 	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up", nil).Contains(`type="submit"`)
-	if D(t, "clear author").Exec("DELETE FROM authors WHERE name=$1", "test1").PASS() {
-		D(t, "shouldn't have test1").Query("SELECT * FROM authors WHERE name=$1", "test1").Empty()
-		I(t, "should be a success page").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"test1"}, "password": {"123456"}, "description": {"lazy and nothing"}}).Redirect("/Articles/Success")
-		D(t, "shouldn't have test1").Query("SELECT * FROM authors WHERE name=$1", "test1").NonEmpty()
-		I(t, "should be a 500 page").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"test1"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-			Contains(`pq: duplicate key value violates unique constraint "authors_name_key"`)
-		D(t, "clear author again").Exec("DELETE FROM authors WHERE name=$1", "test1").PASS()
-	}
+
+	D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
+	I(t, "should be a success page").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"testNonExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
+		Redirect("/Articles/Success")
+	D(t, "should have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").NonEmpty()
+	D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist")
+	D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
+
+	D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
+	I(t, "should show authors_name_key error").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"testExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
+		Contains("Duplicate username")
+	D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
+
+	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"a..b"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
+		Contains("Invalid username")
+	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"a#bc"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
+		Contains("Invalid username")
+	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"a1"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
+		Contains("Invalid username")
+
+	I(t, "should be a 500 page").Method("POST", "/Articles/Sign-Up", url.Values{"username": {"testNonExist"}, "password": {"123456"}, "description": {"lazy and nothing", ""}}).
+		HttpCode(500).Contains("Multiple description")
 }
 
 func TestAuthorGet(t *testing.T) {
 	I(t, "should contains Clouds").Method("GET", "/Articles/Clouds", nil).Contains("Clouds")
+	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404)
 }

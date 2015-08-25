@@ -23,7 +23,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE authors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(50) NOT NULL UNIQUE CONSTRAINT authors_name_character CHECK (name ~ '^[0-9a-zA-Z][0-9a-zA-Z.]{2,}[0-9a-zA-Z]$' and name not like '%..%'),
     password VARCHAR(50) NOT NULL,
     description VARCHAR(200),
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

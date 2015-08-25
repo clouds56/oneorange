@@ -6,6 +6,7 @@
 	</head>
 	<body>
 		<form action="Sign-Up" method="post">
+			<div>{{.Error}}</div>
 			Username: <input type="text" name="username" value="{{.Username}}" required>
 			Password: <input type="password" name="password" value="" required>
 			Description: <input type="text" name="description" value="lazy and nothing">
