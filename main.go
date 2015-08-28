@@ -74,7 +74,7 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, params)
 }
 
-func newuserHandler(w http.ResponseWriter, r *http.Request) {
+func signupSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	var author Author
 	if len(r.Form["username"]) != 1 {
@@ -111,7 +111,12 @@ func newuserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "Success", http.StatusFound)
+	http.Redirect(w, r, "Success", http.StatusSeeOther)
+}
+
+func signupSuccessHandler(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Developing", http.StatusInternalServerError)
+	return
 }
 
 func initRouter() (*mux.Router, *sql.DB) {
@@ -122,8 +127,9 @@ func initRouter() (*mux.Router, *sql.DB) {
 	}
 	router := mux.NewRouter()
 	sub := router.PathPrefix("/Articles").Subrouter()
-	sub.HandleFunc("/Sign-Up", newuserHandler).Methods("Post")
 	sub.HandleFunc("/Sign-Up", signupHandler)
+	sub.HandleFunc("/Sign-Up/Submit", signupSubmitHandler).Methods("Post")
+	sub.HandleFunc("/Sign-Up/Success", signupSuccessHandler)
 	sub.HandleFunc("/{Author}", authorHandler)
 	return router, db
 }
