@@ -17,7 +17,7 @@ var (
 )
 
 func init() {
-	router, db = initRouter()
+	router, db, store = initRouter()
 	server = httptest.NewServer(router)
 	log.Println(server.URL)
 }
@@ -204,16 +204,13 @@ func TestTest(t *testing.T) {
 }
 
 func TestSignup(t *testing.T) {
-	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up", nil).Contains(`type="submit"`)
+	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up", nil).Contains("Sign up").Contains(`type="submit"`)
 
-	D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
 	I(t, "should be a success page").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"testNonExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-		Redirect("/Articles/Sign-Up/Success")
+		Redirect("/Articles/testNonExist")
 	D(t, "should have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").NonEmpty()
 	D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist")
-	D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
 
-	D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
 	I(t, "should show authors_name_key error").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"testExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
 		Contains("Duplicate username")
 	D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
@@ -224,12 +221,24 @@ func TestSignup(t *testing.T) {
 		Contains("Invalid username")
 	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"a1"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
 		Contains("Invalid username")
-
-	I(t, "should be a 500 page").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"testNonExist"}, "password": {"123456"}, "description": {"lazy and nothing", ""}}).
-		HttpCode(500).Contains("Multiple description")
 }
 
 func TestAuthorGet(t *testing.T) {
 	I(t, "should contains Clouds").Method("GET", "/Articles/Clouds", nil).Contains("Clouds")
 	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404)
+}
+
+func TestSignin(t *testing.T) {
+	I(t, "should be a sign in html").Method("GET", "/Articles/Sign-In", nil).Contains("Sign in").Contains(`type="submit"`)
+
+	I(t, "should be a success page").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}, "password": {"123"}}).
+		Redirect("/Articles/testExist")
+
+	I(t, "should show authors_name_nonexist error").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testNonExist"}, "password": {"123"}}).
+		Contains("Username not exists")
+	I(t, "should show authors_password_notmatch error").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}, "password": {"321"}}).
+		Contains("Invalid password")
+
+	I(t, "should be a 500 page").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}}).
+		Contains("Invalid password")
 }

@@ -61,11 +61,15 @@ func tasks(p *do.Project) {
 	p.Task("db-reinit", do.S{"db-destory", "db-init", "db-restore"}, nil)
 
 	p.Task("db-dump", do.S{"db-start"}, func(c *do.Context) {
-		c.Run("pg_dump -p 9456 -d orangez -a -f tasks/dump.sql")
+		c.Run("pg_dump -p 9456 -d orangez -T http_sessions -a -f tasks/dump.sql")
 	})
 
 	p.Task("db-restore", do.S{"db-start"}, func(c *do.Context) {
 		c.Run("psql --set ON_ERROR_STOP=on -p 9456 -d orangez -f tasks/dump.sql")
+	})
+
+	p.Task("db-sessions", do.S{"db-start"}, func(c *do.Context) {
+		c.Run("pg_dump -p 9456 -d orangez -t http_sessions")
 	})
 
 	p.Task("run", do.S{"db-start"}, func(c *do.Context) {

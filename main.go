@@ -2,7 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
+	"github.com/antonlindstrom/pgstore"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/lib/pq"
 	"html/template"
 	"log"
@@ -12,8 +16,9 @@ import (
 )
 
 var (
-	router *mux.Router
+	router http.Handler
 	db     *sql.DB
+	store  sessions.Store
 )
 
 type Author struct {
@@ -24,12 +29,32 @@ type Author struct {
 }
 
 func cryptoPassword(password string) string {
+	if password == "" {
+		return ""
+	}
 	return "SALT" + password
 }
 
-func getAuthor(name string) (*Author, error) {
+func checkUser(author *Author) error {
+	password := author.Password
+	err := db.QueryRow("SELECT password FROM authors WHERE name=$1", author.Name).Scan(&author.Password)
+	if err != nil {
+		return err
+	}
+	if author.Password != cryptoPassword(password) {
+		return errors.New("db: password not match")
+	}
+	return nil
+}
+
+func getAuthor(name string, auth bool) (*Author, error) {
 	var author Author
-	err := db.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.Id, &author.Name, &author.Description)
+	var err error
+	if auth {
+		err = db.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.Id, &author.Name, &author.Description)
+	} else {
+		err = db.QueryRow("SELECT name, description FROM authors WHERE name=$1", name).Scan(&author.Name, &author.Description)
+	}
 	return &author, err
 }
 
@@ -45,7 +70,9 @@ func authorHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := mux.Vars(r)
-	author, err := getAuthor(params["Author"])
+	session, err := store.Get(r, "_session")
+	auth := session.Values["logined"] == true && session.Values["username"] == params["Author"]
+	author, err := getAuthor(params["Author"], auth)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			http.NotFound(w, r)
@@ -75,27 +102,9 @@ func signupHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func signupSubmitHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
 	var author Author
-	if len(r.Form["username"]) != 1 {
-		http.Error(w, "No username", http.StatusInternalServerError)
-		return
-	}
-	author.Name = r.Form["username"][0]
-	if len(r.Form["password"]) != 1 {
-		http.Error(w, "No password", http.StatusInternalServerError)
-		return
-	}
-	author.Password = r.Form["password"][0]
-	switch len(r.Form["description"]) {
-	case 0:
-		author.Description = ""
-	case 1:
-		author.Description = r.Form["description"][0]
-	default:
-		http.Error(w, "Multiple description", http.StatusInternalServerError)
-		return
-	}
+	author.Name, author.Password = r.PostFormValue("username"), r.PostFormValue("password")
+	author.Description = r.PostFormValue("description")
 	err := addAuthor(&author)
 	if err != nil {
 		switch err := err.(type) {
@@ -111,15 +120,54 @@ func signupSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "Success", http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/Articles/%s", author.Name), http.StatusSeeOther)
 }
 
-func signupSuccessHandler(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Developing", http.StatusInternalServerError)
-	return
+func signinHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/signin.html")
+	if err != nil {
+		log.Panic(err)
+	}
+	params := mux.Vars(r)
+	params["Username"] = r.FormValue("username")
+	switch r.FormValue("err") {
+	case "authors_name_nonexist":
+		params["Error"] = "Username not exists"
+	case "authors_password_notmatch":
+		params["Error"] = "Invalid password"
+	}
+	tmpl.Execute(w, params)
 }
 
-func initRouter() (*mux.Router, *sql.DB) {
+func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
+	var author Author
+	author.Name, author.Password = r.PostFormValue("username"), r.PostFormValue("password")
+	err := checkUser(&author)
+	if err != nil {
+		params := ""
+		switch err.Error() {
+		case "sql: no rows in result set":
+			params = url.Values{"err": {"authors_name_nonexist"}, "username": {author.Name}}.Encode()
+		case "db: password not match":
+			params = url.Values{"err": {"authors_password_notmatch"}, "username": {author.Name}}.Encode()
+		}
+		http.Redirect(w, r, "/Articles/Sign-In?"+params, http.StatusFound)
+		return
+	}
+	session, err := store.Get(r, "_session")
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("%#v\n", session)
+	session.Values["username"] = author.Name
+	session.Values["logined"] = true
+	session.Save(r, w)
+	http.Redirect(w, r, fmt.Sprintf("/Articles/%s", author.Name), http.StatusSeeOther)
+}
+
+func initRouter() (http.Handler, *sql.DB, sessions.Store) {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	db, err := sql.Open("postgres", "port=9456 dbname=orangez sslmode=disable")
 	if err != nil {
@@ -128,13 +176,15 @@ func initRouter() (*mux.Router, *sql.DB) {
 	router := mux.NewRouter()
 	sub := router.PathPrefix("/Articles").Subrouter()
 	sub.HandleFunc("/Sign-Up", signupHandler)
-	sub.HandleFunc("/Sign-Up/Submit", signupSubmitHandler).Methods("Post")
-	sub.HandleFunc("/Sign-Up/Success", signupSuccessHandler)
+	sub.HandleFunc("/Sign-Up/Submit", signupSubmitHandler).Methods("POST")
+	sub.HandleFunc("/Sign-In", signinHandler)
+	sub.HandleFunc("/Sign-In/Submit", signinSubmitHandler).Methods("POST")
 	sub.HandleFunc("/{Author}", authorHandler)
-	return router, db
+	store := pgstore.NewPGStore("port=9456 dbname=orangez sslmode=disable", []byte("something-secret"))
+	return router, db, store
 }
 
-func forceHttps() *http.ServeMux {
+func forceHttps() http.Handler {
 	mux := http.NewServeMux()
 	re := regexp.MustCompile(":8080$")
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +202,7 @@ func forceHttps() *http.ServeMux {
 }
 
 func main() {
-	router, db = initRouter()
+	router, db, store = initRouter()
 	err := db.Ping()
 	if err != nil {
 		log.Panic(err)
