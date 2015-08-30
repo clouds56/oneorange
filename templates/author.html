@@ -5,8 +5,10 @@
 		<title>Orange -- Organize, Read and Never Good Enough</title>
 	</head>
 	<body>
-		Welcome to {{.Author.Name}}'s Space!
-		<div>Description : {{.Author.Description}}</div>
-		{{.Author.Id}}
+		Welcome to {{.Data.Author.Name}}'s Space!
+		<div>Description: {{.Data.Author.Description}}</div>
+		{{if .Data.Author.Id}}
+		<div>ID: {{.Data.Author.Id}}</div>
+		{{end}}
 	</body>
 </html>

@@ -15,11 +15,22 @@ import (
 	"regexp"
 )
 
-var (
-	router http.Handler
-	db     *sql.DB
-	store  sessions.Store
-)
+type Application struct {
+	Router    http.Handler
+	DB        *sql.DB
+	Store     sessions.Store
+	Templates map[string]*template.Template
+}
+
+var app Application
+
+type Data map[string]interface{}
+type TmplData struct {
+	Request *http.Request
+	Params  map[string]string
+	Session *sessions.Session
+	Data    Data
+}
 
 type Author struct {
 	Id          string
@@ -37,7 +48,7 @@ func cryptoPassword(password string) string {
 
 func checkUser(author *Author) error {
 	password := author.Password
-	err := db.QueryRow("SELECT password FROM authors WHERE name=$1", author.Name).Scan(&author.Password)
+	err := app.DB.QueryRow("SELECT password FROM authors WHERE name=$1", author.Name).Scan(&author.Password)
 	if err != nil {
 		return err
 	}
@@ -51,26 +62,21 @@ func getAuthor(name string, auth bool) (*Author, error) {
 	var author Author
 	var err error
 	if auth {
-		err = db.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.Id, &author.Name, &author.Description)
+		err = app.DB.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.Id, &author.Name, &author.Description)
 	} else {
-		err = db.QueryRow("SELECT name, description FROM authors WHERE name=$1", name).Scan(&author.Name, &author.Description)
+		err = app.DB.QueryRow("SELECT name, description FROM authors WHERE name=$1", name).Scan(&author.Name, &author.Description)
 	}
 	return &author, err
 }
 
 func addAuthor(author *Author) error {
-	_, err := db.Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", author.Name, cryptoPassword(author.Password), author.Description)
+	_, err := app.DB.Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", author.Name, cryptoPassword(author.Password), author.Description)
 	return err
 }
 
 func authorHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/author.html")
-	if err != nil {
-		log.Panic(err)
-	}
-
 	params := mux.Vars(r)
-	session, err := store.Get(r, "_session")
+	session, err := app.Store.Get(r, "_session")
 	auth := session.Values["logined"] == true && session.Values["username"] == params["Author"]
 	author, err := getAuthor(params["Author"], auth)
 	if err != nil {
@@ -81,24 +87,20 @@ func authorHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%#v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
-		tmpl.Execute(w, map[string]interface{}{"Author": author})
+		app.Templates["author"].Execute(w, TmplData{r, params, session, Data{"Author": author}})
 	}
 }
 
 func signupHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/signup.html")
-	if err != nil {
-		log.Panic(err)
-	}
 	params := mux.Vars(r)
-	params["Username"] = r.FormValue("username")
+	data := Data{}
 	switch r.FormValue("err") {
 	case "authors_name_key":
-		params["Error"] = "Duplicate username"
+		data["Error"] = "Duplicate username"
 	case "authors_name_character":
-		params["Error"] = "Invalid username"
+		data["Error"] = "Invalid username"
 	}
-	tmpl.Execute(w, params)
+	app.Templates["signup"].Execute(w, TmplData{r, params, nil, data})
 }
 
 func signupSubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -124,19 +126,15 @@ func signupSubmitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func signinHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("templates/signin.html")
-	if err != nil {
-		log.Panic(err)
-	}
 	params := mux.Vars(r)
-	params["Username"] = r.FormValue("username")
+	data := Data{}
 	switch r.FormValue("err") {
 	case "authors_name_nonexist":
-		params["Error"] = "Username not exists"
+		data["Error"] = "Username not exists"
 	case "authors_password_notmatch":
-		params["Error"] = "Invalid password"
+		data["Error"] = "Invalid password"
 	}
-	tmpl.Execute(w, params)
+	app.Templates["signin"].Execute(w, TmplData{r, params, nil, data})
 }
 
 func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -154,11 +152,10 @@ func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/Articles/Sign-In?"+params, http.StatusFound)
 		return
 	}
-	session, err := store.Get(r, "_session")
+	session, err := app.Store.Get(r, "_session")
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		// ignored and works
 	}
 	log.Printf("%#v\n", session)
 	session.Values["username"] = author.Name
@@ -167,7 +164,15 @@ func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/Articles/%s", author.Name), http.StatusSeeOther)
 }
 
-func initRouter() (http.Handler, *sql.DB, sessions.Store) {
+func MustParseTemplateFiles(tmpls map[string]*template.Template, filename string) {
+	tmpl, err := template.ParseFiles(fmt.Sprintf("templates/%s.html", filename))
+	if err != nil {
+		panic(fmt.Sprintf("Template %s open failed: %s", filename, err.Error()))
+	}
+	tmpls[filename] = tmpl
+}
+
+func initRouter() Application {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	db, err := sql.Open("postgres", "port=9456 dbname=orangez sslmode=disable")
 	if err != nil {
@@ -181,7 +186,11 @@ func initRouter() (http.Handler, *sql.DB, sessions.Store) {
 	sub.HandleFunc("/Sign-In/Submit", signinSubmitHandler).Methods("POST")
 	sub.HandleFunc("/{Author}", authorHandler)
 	store := pgstore.NewPGStore("port=9456 dbname=orangez sslmode=disable", []byte("something-secret"))
-	return router, db, store
+	tmpls := map[string]*template.Template{}
+	MustParseTemplateFiles(tmpls, "author")
+	MustParseTemplateFiles(tmpls, "signin")
+	MustParseTemplateFiles(tmpls, "signup")
+	return Application{router, db, store, tmpls}
 }
 
 func forceHttps() http.Handler {
@@ -202,11 +211,11 @@ func forceHttps() http.Handler {
 }
 
 func main() {
-	router, db, store = initRouter()
-	err := db.Ping()
+	app = initRouter()
+	err := app.DB.Ping()
 	if err != nil {
 		log.Panic(err)
 	}
 	go func() { log.Fatal(http.ListenAndServe(":8080", forceHttps())) }()
-	log.Fatal(http.ListenAndServeTLS(":8443", "cert/orangez.cert.bundle.pem", "cert/orangez.key.pem", router))
+	log.Fatal(http.ListenAndServeTLS(":8443", "cert/orangez.cert.bundle.pem", "cert/orangez.key.pem", app.Router))
 }

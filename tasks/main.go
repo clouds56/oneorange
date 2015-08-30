@@ -69,7 +69,7 @@ func tasks(p *do.Project) {
 	})
 
 	p.Task("db-sessions", do.S{"db-start"}, func(c *do.Context) {
-		c.Run("pg_dump -p 9456 -d orangez -t http_sessions")
+		c.Run("pg_dump -p 9456 -d orangez -a -t http_sessions")
 	})
 
 	p.Task("run", do.S{"db-start"}, func(c *do.Context) {

@@ -7,8 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -17,14 +19,15 @@ var (
 )
 
 func init() {
-	router, db, store = initRouter()
-	server = httptest.NewServer(router)
+	app = initRouter()
+	server = httptest.NewServer(app.Router)
 	log.Println(server.URL)
 }
 
 type IT struct {
 	t       *testing.T
 	message string
+	client  http.Client
 	resp    *http.Response
 	body    string
 	parsed  bool
@@ -34,6 +37,11 @@ type IT struct {
 func I(t *testing.T, message string) *IT {
 	var it IT
 	it.Settings(t, message)
+	jar, err := cookiejar.New(nil)
+	if !assert.NoError(t, err) {
+		it.failed = true
+	}
+	it.client = http.Client{Jar: jar}
 	return &it
 }
 
@@ -58,14 +66,15 @@ func (it *IT) Method(method, url string, data url.Values) *IT {
 	var resp *http.Response
 	var err error
 	if method == "POST" {
-		resp, err = http.PostForm(server.URL+url, data)
+		resp, err = it.client.Post(server.URL+url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	} else if method == "GET" {
-		resp, err = http.Get(server.URL + url)
+		resp, err = it.client.Get(server.URL + url)
 	} else {
 		return it.FailNow("Unkown http method at %s", assert.CallerInfo())
 	}
 	if assert.NoError(it.t, err) && assert.NotNil(it.t, resp) {
 		it.resp = resp
+		it.parsed = false
 		return it
 	}
 	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
@@ -119,6 +128,17 @@ func (it *IT) Contains(str string) *IT {
 	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
 }
 
+func (it *IT) NotContains(str string) *IT {
+	if it.failed {
+		return it
+	}
+	it.ParseBody()
+	if assert.NotContains(it.t, it.body, str) {
+		return it
+	}
+	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+}
+
 func (it *IT) PASS() bool {
 	return !it.failed
 }
@@ -151,7 +171,7 @@ func (dt *DT) FailNow(format string, args ...interface{}) *DT {
 }
 
 func (dt *DT) Query(query string, args ...interface{}) *DT {
-	rows, err := db.Query(query, args...)
+	rows, err := app.DB.Query(query, args...)
 	if assert.NoError(dt.t, err) {
 		dt.rows = rows
 		return dt
@@ -160,7 +180,7 @@ func (dt *DT) Query(query string, args ...interface{}) *DT {
 }
 
 func (dt *DT) Exec(query string, args ...interface{}) *DT {
-	_, err := db.Exec(query, args...)
+	_, err := app.DB.Exec(query, args...)
 	if assert.NoError(dt.t, err) {
 		return dt
 	}
@@ -188,7 +208,9 @@ func (dt *DT) PASS() bool {
 func TestTest(t *testing.T) {
 	assert.True(t, true, "Canary test")
 	assert.Contains(t, "a", "a")
-	assert.NotNil(t, router)
+	assert.NotNil(t, app.Router)
+	assert.NotNil(t, app.DB)
+	assert.NotNil(t, app.Store)
 	if !D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty().PASS() {
 		D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist")
 		D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
@@ -205,6 +227,8 @@ func TestTest(t *testing.T) {
 
 func TestSignup(t *testing.T) {
 	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up", nil).Contains("Sign up").Contains(`type="submit"`)
+	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up?err=authors_name_character&username=a.c", nil).
+		Contains("Sign up").Contains(`type="submit"`).Contains("Invalid username").Contains("a.c")
 
 	I(t, "should be a success page").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"testNonExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
 		Redirect("/Articles/testNonExist")
@@ -223,11 +247,6 @@ func TestSignup(t *testing.T) {
 		Contains("Invalid username")
 }
 
-func TestAuthorGet(t *testing.T) {
-	I(t, "should contains Clouds").Method("GET", "/Articles/Clouds", nil).Contains("Clouds")
-	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404)
-}
-
 func TestSignin(t *testing.T) {
 	I(t, "should be a sign in html").Method("GET", "/Articles/Sign-In", nil).Contains("Sign in").Contains(`type="submit"`)
 
@@ -241,4 +260,13 @@ func TestSignin(t *testing.T) {
 
 	I(t, "should be a 500 page").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}}).
 		Contains("Invalid password")
+}
+
+func TestAuthorGet(t *testing.T) {
+	I(t, "should contains Clouds").Method("GET", "/Articles/Clouds", nil).Contains("Clouds").NotContains("ID")
+	I(t, "should contains Clouds and ID").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"Clouds"}, "password": {"zxc"}}).
+		Redirect("/Articles/Clouds").Contains("Clouds").Contains("ID").
+		Method("GET", "/Articles/testExist", nil).NotContains("ID").
+		Method("GET", "/Articles/Clouds", nil).Contains("ID")
+	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404)
 }
