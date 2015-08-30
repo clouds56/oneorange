@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"time"
 )
 
 type Application struct {
@@ -77,7 +78,12 @@ func addAuthor(author *Author) error {
 func authorHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	session, err := app.Store.Get(r, "_session")
+	// log.Printf("%#v\n", session)
 	auth := session.Values["logined"] == true && session.Values["username"] == params["Author"]
+	if session.Values["logined"] != true {
+		session.Options.MaxAge = -1
+		sessions.Save(r, w)
+	}
 	author, err := getAuthor(params["Author"], auth)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
@@ -157,10 +163,11 @@ func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 		// ignored and works
 	}
-	log.Printf("%#v\n", session)
+	// log.Printf("%#v\n", session)
 	session.Values["username"] = author.Name
 	session.Values["logined"] = true
 	session.Save(r, w)
+	// log.Printf("%#v\n", session)
 	http.Redirect(w, r, fmt.Sprintf("/Articles/%s", author.Name), http.StatusSeeOther)
 }
 
@@ -186,6 +193,7 @@ func initRouter() Application {
 	sub.HandleFunc("/Sign-In/Submit", signinSubmitHandler).Methods("POST")
 	sub.HandleFunc("/{Author}", authorHandler)
 	store := pgstore.NewPGStore("port=9456 dbname=orangez sslmode=disable", []byte("something-secret"))
+	store.Cleanup(time.Minute * 5)
 	tmpls := map[string]*template.Template{}
 	MustParseTemplateFiles(tmpls, "author")
 	MustParseTemplateFiles(tmpls, "signin")

@@ -2,6 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
+	"github.com/antonlindstrom/pgstore"
+	"github.com/gorilla/securecookie"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -35,19 +38,19 @@ type IT struct {
 }
 
 func I(t *testing.T, message string) *IT {
-	var it IT
+	it := &IT{}
 	it.Settings(t, message)
 	jar, err := cookiejar.New(nil)
 	if !assert.NoError(t, err) {
 		it.failed = true
 	}
 	it.client = http.Client{Jar: jar}
-	return &it
+	return it
 }
 
 func (it *IT) Settings(t *testing.T, message string) *IT {
 	it.t = t
-	it.message = message
+	it.message = fmt.Sprintf(`"%s@%s"`, message, assert.CallerInfo())
 	it.failed = false
 	return it
 }
@@ -70,14 +73,14 @@ func (it *IT) Method(method, url string, data url.Values) *IT {
 	} else if method == "GET" {
 		resp, err = it.client.Get(server.URL + url)
 	} else {
-		return it.FailNow("Unkown http method at %s", assert.CallerInfo())
+		return it.FailNow("Unkown http method")
 	}
 	if assert.NoError(it.t, err) && assert.NotNil(it.t, resp) {
 		it.resp = resp
 		it.parsed = false
 		return it
 	}
-	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+	return it.FailNow("Failed : %s", it.message)
 }
 
 func (it *IT) Redirect(url string) *IT {
@@ -87,7 +90,7 @@ func (it *IT) Redirect(url string) *IT {
 	if assert.Equal(it.t, url, it.resp.Request.URL.Path) {
 		return it
 	}
-	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+	return it.FailNow("Failed : %s", it.message)
 }
 
 func (it *IT) HttpCode(code int) *IT {
@@ -97,7 +100,7 @@ func (it *IT) HttpCode(code int) *IT {
 	if assert.Equal(it.t, code, it.resp.StatusCode) {
 		return it
 	}
-	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+	return it.FailNow("Failed : %s", it.message)
 }
 
 func (it *IT) ParseBody() *IT {
@@ -114,7 +117,7 @@ func (it *IT) ParseBody() *IT {
 		it.body = string(body)
 		return it
 	}
-	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+	return it.FailNow("Failed : %s", it.message)
 }
 
 func (it *IT) Contains(str string) *IT {
@@ -125,7 +128,7 @@ func (it *IT) Contains(str string) *IT {
 	if assert.Contains(it.t, it.body, str) {
 		return it
 	}
-	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+	return it.FailNow("Failed : %s", it.message)
 }
 
 func (it *IT) NotContains(str string) *IT {
@@ -136,10 +139,29 @@ func (it *IT) NotContains(str string) *IT {
 	if assert.NotContains(it.t, it.body, str) {
 		return it
 	}
-	return it.FailNow("Failed : %s at %s", it.message, assert.CallerInfo())
+	return it.FailNow("Failed : %s", it.message)
+}
+
+func CleanCookies(it *IT) {
+	u, err := url.Parse(server.URL)
+	if !assert.NoError(it.t, err) {
+		it.FailNow("Parse url faild : %s", err.Error())
+		return
+	}
+	if assert.NotNil(it.t, it.client) && assert.NotNil(it.t, it.client.Jar) {
+		for _, v := range it.client.Jar.Cookies(u) {
+			var id string
+			err := securecookie.DecodeMulti(v.Name, v.Value, &id, app.Store.(*pgstore.PGStore).Codecs...)
+			if err != nil {
+				log.Printf("clean %s -> %s(%s)", it.message, id, err)
+			}
+			D(it.t, "clean cookies").Exec("DELETE FROM http_sessions WHERE key=$1", id)
+		}
+	}
 }
 
 func (it *IT) PASS() bool {
+	CleanCookies(it)
 	return !it.failed
 }
 
@@ -151,14 +173,14 @@ type DT struct {
 }
 
 func D(t *testing.T, message string) *DT {
-	var dt DT
+	dt := &DT{}
 	dt.Settings(t, message)
-	return &dt
+	return dt
 }
 
 func (dt *DT) Settings(t *testing.T, message string) *DT {
 	dt.t = t
-	dt.message = message
+	dt.message = fmt.Sprintf(`"%s@%s"`, message, assert.CallerInfo())
 	dt.failed = false
 	return dt
 }
@@ -176,7 +198,7 @@ func (dt *DT) Query(query string, args ...interface{}) *DT {
 		dt.rows = rows
 		return dt
 	}
-	return dt.FailNow("Failed : %s at %s", dt.message, assert.CallerInfo())
+	return dt.FailNow("Failed : %s", dt.message)
 }
 
 func (dt *DT) Exec(query string, args ...interface{}) *DT {
@@ -184,21 +206,21 @@ func (dt *DT) Exec(query string, args ...interface{}) *DT {
 	if assert.NoError(dt.t, err) {
 		return dt
 	}
-	return dt.FailNow("Failed : %s at %s", dt.message, assert.CallerInfo())
+	return dt.FailNow("Failed : %s", dt.message)
 }
 
 func (dt *DT) Empty() *DT {
 	if assert.False(dt.t, dt.rows.Next()) {
 		return dt
 	}
-	return dt.FailNow("Failed : %s at %s", dt.message, assert.CallerInfo())
+	return dt.FailNow("Failed : %s", dt.message)
 }
 
 func (dt *DT) NonEmpty() *DT {
 	if assert.True(dt.t, dt.rows.Next()) {
 		return dt
 	}
-	return dt.FailNow("Failed : %s at %s", dt.message, assert.CallerInfo())
+	return dt.FailNow("Failed : %s", dt.message)
 }
 
 func (dt *DT) PASS() bool {
@@ -212,61 +234,60 @@ func TestTest(t *testing.T) {
 	assert.NotNil(t, app.DB)
 	assert.NotNil(t, app.Store)
 	if !D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty().PASS() {
-		D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist")
-		D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty()
+		D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist").PASS()
+		D(t, "shouldn't have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").Empty().PASS()
 	}
 	if !D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty().PASS() {
-		D(t, "create testExist").Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", "testExist", cryptoPassword("123"), "lazy and nothing")
-		D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
+		D(t, "create testExist").Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", "testExist", cryptoPassword("123"), "lazy and nothing").PASS()
+		D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty().PASS()
 	}
 	if !D(t, "should have Clouds").Query("SELECT * FROM authors WHERE name=$1", "Clouds").NonEmpty().PASS() {
-		D(t, "clear author").Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", "Clouds", cryptoPassword("zxc"), "seven square and seven")
-		D(t, "should have Clouds").Query("SELECT * FROM authors WHERE name=$1", "Clouds").NonEmpty()
+		D(t, "clear author").Exec("INSERT INTO authors (name, password, description) VALUES ($1, $2, $3)", "Clouds", cryptoPassword("zxc"), "seven square and seven").PASS()
+		D(t, "should have Clouds").Query("SELECT * FROM authors WHERE name=$1", "Clouds").NonEmpty().PASS()
 	}
 }
 
 func TestSignup(t *testing.T) {
-	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up", nil).Contains("Sign up").Contains(`type="submit"`)
+	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up", nil).Contains("Sign up").Contains(`type="submit"`).PASS()
 	I(t, "should be a sign up html").Method("GET", "/Articles/Sign-Up?err=authors_name_character&username=a.c", nil).
-		Contains("Sign up").Contains(`type="submit"`).Contains("Invalid username").Contains("a.c")
+		Contains("Sign up").Contains(`type="submit"`).Contains("Invalid username").Contains("a.c").PASS()
 
 	I(t, "should be a success page").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"testNonExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-		Redirect("/Articles/testNonExist")
-	D(t, "should have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").NonEmpty()
-	D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist")
+		Redirect("/Articles/testNonExist").PASS()
+	D(t, "should have testNonExist").Query("SELECT * FROM authors WHERE name=$1", "testNonExist").NonEmpty().PASS()
+	D(t, "clear testNonExist").Exec("DELETE FROM authors WHERE name=$1", "testNonExist").PASS()
 
 	I(t, "should show authors_name_key error").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"testExist"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-		Contains("Duplicate username")
-	D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty()
+		Contains("Duplicate username").PASS()
+	D(t, "should have testExist").Query("SELECT * FROM authors WHERE name=$1", "testExist").NonEmpty().PASS()
 
 	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"a..b"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-		Contains("Invalid username")
+		Contains("Invalid username").PASS()
 	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"a#bc"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-		Contains("Invalid username")
+		Contains("Invalid username").PASS()
 	I(t, "should show authors_name_character error").Method("POST", "/Articles/Sign-Up/Submit", url.Values{"username": {"a1"}, "password": {"123456"}, "description": {"lazy and nothing"}}).
-		Contains("Invalid username")
+		Contains("Invalid username").PASS()
 }
 
 func TestSignin(t *testing.T) {
-	I(t, "should be a sign in html").Method("GET", "/Articles/Sign-In", nil).Contains("Sign in").Contains(`type="submit"`)
+	I(t, "should be a sign in html").Method("GET", "/Articles/Sign-In", nil).Contains("Sign in").Contains(`type="submit"`).PASS()
 
 	I(t, "should be a success page").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}, "password": {"123"}}).
-		Redirect("/Articles/testExist")
+		Redirect("/Articles/testExist").PASS()
 
 	I(t, "should show authors_name_nonexist error").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testNonExist"}, "password": {"123"}}).
-		Contains("Username not exists")
+		Contains("Username not exists").PASS()
 	I(t, "should show authors_password_notmatch error").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}, "password": {"321"}}).
-		Contains("Invalid password")
-
-	I(t, "should be a 500 page").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}}).
-		Contains("Invalid password")
+		Contains("Invalid password").PASS()
+	I(t, "should show authors_password_notmatch error").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"testExist"}}).
+		Contains("Invalid password").PASS()
 }
 
 func TestAuthorGet(t *testing.T) {
-	I(t, "should contains Clouds").Method("GET", "/Articles/Clouds", nil).Contains("Clouds").NotContains("ID")
+	I(t, "should contains Clouds").Method("GET", "/Articles/Clouds", nil).Contains("Clouds").NotContains("ID").PASS()
 	I(t, "should contains Clouds and ID").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"Clouds"}, "password": {"zxc"}}).
 		Redirect("/Articles/Clouds").Contains("Clouds").Contains("ID").
 		Method("GET", "/Articles/testExist", nil).NotContains("ID").
-		Method("GET", "/Articles/Clouds", nil).Contains("ID")
-	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404)
+		Method("GET", "/Articles/Clouds", nil).Contains("ID").PASS()
+	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404).PASS()
 }
