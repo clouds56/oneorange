@@ -291,3 +291,12 @@ func TestAuthorGet(t *testing.T) {
 		Method("GET", "/Articles/Clouds", nil).Contains("ID").PASS()
 	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404).PASS()
 }
+
+func TestAnthologyGet(t *testing.T) {
+	I(t, "should contains Home").Method("GET", "/Articles/Clouds/Home", nil).Contains("Clouds").Contains("Home").NotContains("ID").PASS()
+	I(t, "should contains Home and ID").Method("POST", "/Articles/Sign-In/Submit", url.Values{"username": {"Clouds"}, "password": {"zxc"}}).Redirect("/Articles/Clouds").
+		Method("GET", "/Articles/Clouds/Home", nil).Contains("Clouds").Contains("Home").Contains("ID").
+		//Method("GET", "/Articles/testExist", nil).NotContains("ID").
+		PASS()
+	I(t, "should be a 404 page").Method("GET", "/Articles/Clouds/NoName", nil).HttpCode(404).PASS()
+}

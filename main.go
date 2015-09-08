@@ -40,6 +40,13 @@ type Author struct {
 	Description string
 }
 
+type Anthology struct {
+	Id          string
+	Name        string
+	Author      *Author
+	Description string
+}
+
 func cryptoPassword(password string) string {
 	if password == "" {
 		return ""
@@ -75,6 +82,27 @@ func addAuthor(author *Author) error {
 	return err
 }
 
+func getAnthology(name string, author_name string, auth bool) (*Anthology, error) {
+	var author Author
+	var anthology Anthology
+	anthology.Author = &author
+	var err error
+	query := `SELECT
+			%s anthologies.name, anthologies.description, authors.name
+		FROM
+			anthologies, authors
+		WHERE
+			anthologies.name=$1 AND authors.name=$2 AND authors.id=anthologies.author_id`
+	if auth {
+		query = fmt.Sprintf(query, "anthologies.id,")
+		err = app.DB.QueryRow(query, name, author_name).Scan(&anthology.Id, &anthology.Name, &anthology.Description, &anthology.Author.Name)
+	} else {
+		query = fmt.Sprintf(query, "")
+		err = app.DB.QueryRow(query, name, author_name).Scan(&anthology.Name, &anthology.Description, &anthology.Author.Name)
+	}
+	return &anthology, err
+}
+
 func authorHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	session, err := app.Store.Get(r, "_session")
@@ -94,6 +122,27 @@ func authorHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		app.Templates["author"].Execute(w, TmplData{r, params, session, Data{"Author": author}})
+	}
+}
+
+func anthologyHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	session, err := app.Store.Get(r, "_session")
+	auth := session.Values["logined"] == true && session.Values["username"] == params["Author"]
+	if session.Values["logined"] != true {
+		session.Options.MaxAge = -1
+		sessions.Save(r, w)
+	}
+	anthology, err := getAnthology(params["Anthology"], params["Author"], auth)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			http.NotFound(w, r)
+			return
+		}
+		log.Printf("%#v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		app.Templates["anthology"].Execute(w, TmplData{r, params, session, Data{"Anthology": anthology}})
 	}
 }
 
@@ -171,14 +220,6 @@ func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/Articles/%s", author.Name), http.StatusSeeOther)
 }
 
-func MustParseTemplateFiles(tmpls map[string]*template.Template, filename string) {
-	tmpl, err := template.ParseFiles(fmt.Sprintf("templates/%s.html", filename))
-	if err != nil {
-		panic(fmt.Sprintf("Template %s open failed: %s", filename, err.Error()))
-	}
-	tmpls[filename] = tmpl
-}
-
 func initRouter() Application {
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 	db, err := sql.Open("postgres", "port=9456 dbname=orangez sslmode=disable")
@@ -192,12 +233,13 @@ func initRouter() Application {
 	sub.HandleFunc("/Sign-In", signinHandler)
 	sub.HandleFunc("/Sign-In/Submit", signinSubmitHandler).Methods("POST")
 	sub.HandleFunc("/{Author}", authorHandler)
+	sub.HandleFunc("/{Author}/{Anthology}", anthologyHandler)
 	store := pgstore.NewPGStore("port=9456 dbname=orangez sslmode=disable", []byte("something-secret"))
 	store.Cleanup(time.Minute * 5)
 	tmpls := map[string]*template.Template{}
-	MustParseTemplateFiles(tmpls, "author")
-	MustParseTemplateFiles(tmpls, "signin")
-	MustParseTemplateFiles(tmpls, "signup")
+	for _, t := range []string{"author", "anthology", "signin", "signup"} {
+		tmpls[t] = template.Must(template.ParseFiles(fmt.Sprintf("templates/%s.html", t)))
+	}
 	return Application{router, db, store, tmpls}
 }
 

@@ -28,3 +28,12 @@ CREATE TABLE authors (
     description VARCHAR(200),
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE anthologies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    author_id UUID NOT NULL REFERENCES authors(id),
+    description VARCHAR(200),
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (name, author_id)
+)

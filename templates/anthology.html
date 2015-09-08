@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Orange -- Organize, Read and Never Good Enough</title>
+	</head>
+	<body>
+		<<{{.Data.Anthology.Name}}>> By {{.Data.Anthology.Author.Name}}
+		<div>Description: {{.Data.Anthology.Description}}</div>
+		{{if .Data.Anthology.Id}}
+		<div>ID: {{.Data.Anthology.Id}}</div>
+		{{end}}
+	</body>
+</html>

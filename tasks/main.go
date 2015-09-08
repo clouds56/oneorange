@@ -29,15 +29,23 @@ func tasks(p *do.Project) {
 		}
 	})
 
-	p.Task("db-start", do.S{"db-create"}, func(c *do.Context) {
-		if !exist("data/postmaster.pid") {
-			c.Run("pg_ctl -D data -o '--config-file=postgresql.conf' start -w -t 120")
+	p.Task("db-checkpid", nil, func(c *do.Context) {
+		if !exist("/tmp/postgres-9456.lock") && exist("data/postmaster.pid") {
+			c.Run("rm data/postmaster.pid")
 		}
 	})
 
-	p.Task("db-stop", nil, func(c *do.Context) {
+	p.Task("db-start", do.S{"db-create", "db-checkpid"}, func(c *do.Context) {
+		if !exist("data/postmaster.pid") {
+			c.Run("pg_ctl -D data -o '--config-file=postgresql.conf' start -w -t 120")
+			c.Run("touch /tmp/postgres-9456.lock")
+		}
+	})
+
+	p.Task("db-stop", do.S{"db-checkpid"}, func(c *do.Context) {
 		if exist("data/postmaster.pid") {
 			c.Run("pg_ctl -D data -o '--config-file=postgresql.conf' stop -m fast")
+			c.Run("rm /tmp/postgres-9456.lock")
 		}
 	})
 
