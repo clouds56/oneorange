@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/lib/pq"
 	do "gopkg.in/godo.v2"
 	"os"
@@ -80,11 +81,30 @@ func tasks(p *do.Project) {
 		c.Run("pg_dump -p 9456 -d orangez -a -t http_sessions")
 	})
 
-	p.Task("run", do.S{"db-start"}, func(c *do.Context) {
+	p.Task("cert-init", nil, func(c *do.Context) {
+		if !exist("cert/intermediate.cert.pem") {
+			c.Run("sudo sh init.sh", do.M{"$in": "cert"})
+		}
+	})
+
+	p.Task("cert-generate", do.S{"cert-init"}, func(c *do.Context) {
+		if !exist("cert/orangez.cert.bundle.pem") {
+			c.Run("sh generate.sh 127.0.0.69 orangez", do.M{"$in": "cert"})
+		}
+	})
+
+	p.Task("cert-regen", do.S{"cert-init"}, func(c *do.Context) {
+		c.Run("sh generate.sh 127.0.0.69 orangez", do.M{"$in": "cert"})
+	})
+
+	p.Task("prepare", do.S{"db-start", "cert-generate"}, nil)
+
+	p.Task("run", do.S{"prepare"}, func(c *do.Context) {
+		fmt.Println("Running...")
 		c.Run("go run main.go")
 	})
 
-	p.Task("test", do.S{"db-start"}, func(c *do.Context) {
+	p.Task("test", do.S{"prepare"}, func(c *do.Context) {
 		c.Run("go test -v")
 	})
 }
