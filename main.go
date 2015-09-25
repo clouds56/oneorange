@@ -4,16 +4,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/antonlindstrom/pgstore"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
-	"github.com/lib/pq"
 	"html/template"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
+
+	"github.com/antonlindstrom/pgstore"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
+	"github.com/lib/pq"
 )
 
 type Application struct {
@@ -103,16 +104,40 @@ func getAnthology(name string, author_name string, auth bool) (*Anthology, error
 	return &anthology, err
 }
 
+func newSession(w http.ResponseWriter, r *http.Request, username string) *sessions.Session {
+	session, err := app.Store.Get(r, "_session")
+	if err != nil {
+		log.Println(err.Error())
+		// ignored and works
+	}
+	// log.Printf("%#v\n", session)
+	session.Values["username"] = username
+	session.Values["logined"] = true
+	session.Save(r, w)
+	// log.Printf("%#v\n", session)
+	return session
+}
+
+func getSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, string) {
+	username := ""
+	session, err := app.Store.Get(r, "_session")
+	if err != nil || session.Values["logined"] != true {
+		session.Options.MaxAge = -1
+		sessions.Save(r, w)
+		return session, username
+	}
+	if session.Values["logined"] == true {
+		username = session.Values["username"].(string)
+	}
+	return session, username
+}
+
 func authorHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	session, err := app.Store.Get(r, "_session")
 	// log.Printf("%#v\n", session)
-	auth := session.Values["logined"] == true && session.Values["username"] == params["Author"]
-	if session.Values["logined"] != true {
-		session.Options.MaxAge = -1
-		sessions.Save(r, w)
-	}
-	author, err := getAuthor(params["Author"], auth)
+	session, username := getSession(w, r)
+	author, err := getAuthor(params["Author"], username == params["Author"])
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			http.NotFound(w, r)
@@ -127,13 +152,8 @@ func authorHandler(w http.ResponseWriter, r *http.Request) {
 
 func anthologyHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	session, err := app.Store.Get(r, "_session")
-	auth := session.Values["logined"] == true && session.Values["username"] == params["Author"]
-	if session.Values["logined"] != true {
-		session.Options.MaxAge = -1
-		sessions.Save(r, w)
-	}
-	anthology, err := getAnthology(params["Anthology"], params["Author"], auth)
+	session, username := getSession(w, r)
+	anthology, err := getAnthology(params["Anthology"], params["Author"], username == params["Author"])
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			http.NotFound(w, r)
@@ -207,16 +227,7 @@ func signinSubmitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/Articles/Sign-In?"+params, http.StatusFound)
 		return
 	}
-	session, err := app.Store.Get(r, "_session")
-	if err != nil {
-		log.Println(err.Error())
-		// ignored and works
-	}
-	// log.Printf("%#v\n", session)
-	session.Values["username"] = author.Name
-	session.Values["logined"] = true
-	session.Save(r, w)
-	// log.Printf("%#v\n", session)
+	newSession(w, r, author.Name)
 	http.Redirect(w, r, fmt.Sprintf("/Articles/%s", author.Name), http.StatusSeeOther)
 }
 
