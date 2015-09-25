@@ -3,9 +3,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
+
 	_ "github.com/lib/pq"
 	do "gopkg.in/godo.v2"
-	"os"
 )
 
 func exist(filename string) bool {

@@ -17,6 +17,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// Application is the orangez application
 type Application struct {
 	Router    http.Handler
 	DB        *sql.DB
@@ -26,7 +27,10 @@ type Application struct {
 
 var app Application
 
+// Data is the custom data type in TmplData
 type Data map[string]interface{}
+
+// TmplData is the data type in template
 type TmplData struct {
 	Request *http.Request
 	Params  map[string]string
@@ -34,15 +38,17 @@ type TmplData struct {
 	Data    Data
 }
 
+// Author is the author type
 type Author struct {
-	Id          string
+	ID          string
 	Name        string
 	Password    string
 	Description string
 }
 
+// Anthology is the anthology type
 type Anthology struct {
-	Id          string
+	ID          string
 	Name        string
 	Author      *Author
 	Description string
@@ -71,7 +77,7 @@ func getAuthor(name string, auth bool) (*Author, error) {
 	var author Author
 	var err error
 	if auth {
-		err = app.DB.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.Id, &author.Name, &author.Description)
+		err = app.DB.QueryRow("SELECT id, name, description FROM authors WHERE name=$1", name).Scan(&author.ID, &author.Name, &author.Description)
 	} else {
 		err = app.DB.QueryRow("SELECT name, description FROM authors WHERE name=$1", name).Scan(&author.Name, &author.Description)
 	}
@@ -83,7 +89,7 @@ func addAuthor(author *Author) error {
 	return err
 }
 
-func getAnthology(name string, author_name string, auth bool) (*Anthology, error) {
+func getAnthology(name string, authorName string, auth bool) (*Anthology, error) {
 	var author Author
 	var anthology Anthology
 	anthology.Author = &author
@@ -96,10 +102,10 @@ func getAnthology(name string, author_name string, auth bool) (*Anthology, error
 			anthologies.name=$1 AND authors.name=$2 AND authors.id=anthologies.author_id`
 	if auth {
 		query = fmt.Sprintf(query, "anthologies.id,")
-		err = app.DB.QueryRow(query, name, author_name).Scan(&anthology.Id, &anthology.Name, &anthology.Description, &anthology.Author.Name)
+		err = app.DB.QueryRow(query, name, authorName).Scan(&anthology.ID, &anthology.Name, &anthology.Description, &anthology.Author.Name)
 	} else {
 		query = fmt.Sprintf(query, "")
-		err = app.DB.QueryRow(query, name, author_name).Scan(&anthology.Name, &anthology.Description, &anthology.Author.Name)
+		err = app.DB.QueryRow(query, name, authorName).Scan(&anthology.Name, &anthology.Description, &anthology.Author.Name)
 	}
 	return &anthology, err
 }
@@ -254,7 +260,7 @@ func initRouter() Application {
 	return Application{router, db, store, tmpls}
 }
 
-func forceHttps() http.Handler {
+func forceHTTPS() http.Handler {
 	mux := http.NewServeMux()
 	re := regexp.MustCompile(":8080$")
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -277,6 +283,6 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	go func() { log.Fatal(http.ListenAndServe(":8080", forceHttps())) }()
+	go func() { log.Fatal(http.ListenAndServe(":8080", forceHTTPS())) }()
 	log.Fatal(http.ListenAndServeTLS(":8443", "cert/orangez.cert.bundle.pem", "cert/orangez.key.pem", app.Router))
 }

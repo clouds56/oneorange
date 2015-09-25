@@ -3,10 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/antonlindstrom/pgstore"
-	"github.com/gorilla/securecookie"
-	_ "github.com/lib/pq"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,6 +11,11 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/antonlindstrom/pgstore"
+	"github.com/gorilla/securecookie"
+	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -93,7 +94,7 @@ func (it *IT) Redirect(url string) *IT {
 	return it.FailNow("Failed : %s", it.message)
 }
 
-func (it *IT) HttpCode(code int) *IT {
+func (it *IT) HTTPCode(code int) *IT {
 	if it.failed {
 		return it
 	}
@@ -289,7 +290,7 @@ func TestAuthorGet(t *testing.T) {
 		Redirect("/Articles/Clouds").Contains("Clouds").Contains("ID").
 		Method("GET", "/Articles/testExist", nil).NotContains("ID").
 		Method("GET", "/Articles/Clouds", nil).Contains("ID").PASS()
-	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HttpCode(404).PASS()
+	I(t, "should be a 404 page").Method("GET", "/Articles/testNonExist", nil).HTTPCode(404).PASS()
 }
 
 func TestAnthologyGet(t *testing.T) {
@@ -298,5 +299,5 @@ func TestAnthologyGet(t *testing.T) {
 		Method("GET", "/Articles/Clouds/Home", nil).Contains("Clouds").Contains("Home").Contains("ID").
 		//Method("GET", "/Articles/testExist", nil).NotContains("ID").
 		PASS()
-	I(t, "should be a 404 page").Method("GET", "/Articles/Clouds/NoName", nil).HttpCode(404).PASS()
+	I(t, "should be a 404 page").Method("GET", "/Articles/Clouds/NoName", nil).HTTPCode(404).PASS()
 }
